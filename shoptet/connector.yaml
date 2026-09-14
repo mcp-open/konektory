@@ -1,0 +1,236 @@
+schema_version: 1
+slug: shoptet
+name: Shoptet
+version: 1.0.0
+category: ecommerce
+summary: Čtecí přístup k objednávkám, produktům, zákazníkům a skladům e-shopu Shoptet.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: access_token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.myshoptet.com
+  port: 443
+  path_prefix: /api
+  methods:
+  - GET
+tools:
+- name: list_orders
+  description: Stránka objednávek s filtrem stavu a data vytvoření či změny.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      items_per_page:
+        default: 50
+        maximum: 50
+        minimum: 1
+        title: Items Per Page
+        type: integer
+      status_id:
+        anyOf:
+        - maximum: 2147483647
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Status Id
+      creation_time_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})$
+          type: string
+        - type: 'null'
+        default: null
+        title: Creation Time From
+      creation_time_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})$
+          type: string
+        - type: 'null'
+        default: null
+        title: Creation Time To
+      change_time_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})$
+          type: string
+        - type: 'null'
+        default: null
+        title: Change Time From
+      change_time_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})$
+          type: string
+        - type: 'null'
+        default: null
+        title: Change Time To
+    title: OrderList
+    type: object
+- name: get_order
+  description: Detail objednávky podle jejího kódu (čísla).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      code:
+        maxLength: 64
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Code
+        type: string
+    required:
+    - code
+    title: OrderCode
+    type: object
+- name: list_products
+  description: Stránka produktů s filtrem typu, kategorie a data změny; volitelně
+    s obrázky.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      items_per_page:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Items Per Page
+        type: integer
+      product_type:
+        anyOf:
+        - enum:
+          - product
+          - service
+          - bazar
+          type: string
+        - type: 'null'
+        default: null
+        title: Product Type
+      category_guid:
+        anyOf:
+        - pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        title: Category Guid
+      change_time_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})$
+          type: string
+        - type: 'null'
+        default: null
+        title: Change Time From
+      include_images:
+        default: false
+        title: Include Images
+        type: boolean
+    title: ProductList
+    type: object
+- name: get_product
+  description: Detail produktu podle GUID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      guid:
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        title: Guid
+        type: string
+    required:
+    - guid
+    title: ProductGuid
+    type: object
+- name: get_product_by_code
+  description: Detail produktu podle kódu varianty.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      code:
+        maxLength: 64
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Code
+        type: string
+    required:
+    - code
+    title: ProductCode
+    type: object
+- name: list_customers
+  description: Stránka zákazníků e-shopu (pseudonymizováno).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      items_per_page:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Items Per Page
+        type: integer
+    title: CustomerList
+    type: object
+- name: get_customer
+  description: Detail zákazníka podle GUID (pseudonymizováno).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      guid:
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        title: Guid
+        type: string
+    required:
+    - guid
+    title: CustomerGuid
+    type: object
+- name: list_stocks
+  description: Seznam skladů e-shopu včetně výchozího skladu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object

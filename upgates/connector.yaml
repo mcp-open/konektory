@@ -1,0 +1,852 @@
+schema_version: 1
+slug: upgates
+name: Upgates
+version: 1.0.0
+category: ecommerce
+summary: Čtecí přístup k objednávkám, katalogu a nastavení e-shopu Upgates.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_url
+  required: true
+  secret: true
+- key: api_login
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host_pattern: '{tenant}.admin.upgates.com'
+  port: 443
+  path_prefix: /api/v2
+  methods:
+  - GET
+tools:
+- name: list_orders
+  description: 'Seznam objednávek s filtrováním a stránkováním (s omezením velikosti
+    odpovědi).
+
+
+    Data zákazníka jsou před opuštěním konektoru pseudonymizována.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      order_number:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Konkrétní číslo objednávky
+        title: Order Number
+      creation_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Od data YYYY-MM-DD
+        title: Creation Time From
+      creation_time_to:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Do data YYYY-MM-DD
+        title: Creation Time To
+      last_update_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat objednávky aktualizované od tohoto data (YYYY-MM-DD)
+        title: Last Update Time From
+      paid_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle stavu zaplacení
+        title: Paid Yn
+      status:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat podle názvu stavu objednávky
+        title: Status
+      status_id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Filtrovat podle ID stavu objednávky
+        title: Status Id
+      email:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat podle e-mailu zákazníka
+        title: Email
+      phone:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat podle telefonu zákazníka (formát MSISDN)
+        title: Phone
+      external_order_number:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat podle externího čísla objednávky
+        title: External Order Number
+      language:
+        anyOf:
+        - maxLength: 2
+          minLength: 2
+          type: string
+        - type: 'null'
+        default: null
+        description: Jazyk ISO 639-1
+        title: Language
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      order_by:
+        default: creation_time
+        description: 'Řadit podle pole: creation_time | last_update_time'
+        title: Order By
+        type: string
+      order_dir:
+        default: desc
+        description: 'Směr řazení: asc | desc'
+        title: Order Dir
+        type: string
+    title: list_ordersInput
+    type: object
+- name: get_order_history
+  description: Historie konkrétní objednávky. Data zákazníka jsou pseudonymizována.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      order_number:
+        description: Číslo objednávky
+        title: Order Number
+        type: string
+    required:
+    - order_number
+    title: get_order_historyInput
+    type: object
+- name: list_order_statuses
+  description: Seznam všech stavů objednávek.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID stavu
+        title: Id
+      type:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Typ stavu: Received | Canceled | Sent | PaymentSuccessful |
+          PaymentFailed | Custom'
+        title: Type
+    title: list_order_statusesInput
+    type: object
+- name: list_invoices
+  description: Seznam faktur s filtrováním a stránkováním. Data zákazníka jsou pseudonymizována.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_number:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Konkrétní číslo faktury
+        title: Invoice Number
+      creation_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Od data YYYY-MM-DD
+        title: Creation Time From
+      creation_time_to:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Do data YYYY-MM-DD
+        title: Creation Time To
+      paid_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle stavu zaplacení
+        title: Paid Yn
+      type:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Typ faktury: invoice | creditNote | receipt'
+        title: Type
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_invoicesInput
+    type: object
+- name: list_products
+  description: Seznam produktů s filtrováním a stránkováním (s omezením velikosti
+    odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Kód produktu
+        title: Code
+      product_id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: ID produktu
+        title: Product Id
+      last_update_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat produkty aktualizované od tohoto data (YYYY-MM-DD)
+        title: Last Update Time From
+      active_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: 'Filtrovat podle stavu aktivní (výchozí: true)'
+        title: Active Yn
+      archived_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle stavu archivováno
+        title: Archived Yn
+      can_add_to_basket_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle možnosti vložit do košíku
+        title: Can Add To Basket Yn
+      in_stock_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle skladové dostupnosti
+        title: In Stock Yn
+      language:
+        anyOf:
+        - maxLength: 2
+          minLength: 2
+          type: string
+        - type: 'null'
+        default: null
+        description: Jazyk ISO 639-1
+        title: Language
+      pricelist:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat podle názvu ceníku
+        title: Pricelist
+      variants_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: 'Zahrnout varianty (výchozí: false)'
+        title: Variants Yn
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_productsInput
+    type: object
+- name: list_products_simple
+  description: Seznam produktů ve zjednodušeném formátu (s omezením velikosti odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Kód produktu
+        title: Code
+      product_id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: ID produktu
+        title: Product Id
+      last_update_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat produkty aktualizované od tohoto data (YYYY-MM-DD)
+        title: Last Update Time From
+      active_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle stavu aktivní
+        title: Active Yn
+      in_stock_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle skladové dostupnosti
+        title: In Stock Yn
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_products_simpleInput
+    type: object
+- name: list_customers
+  description: Seznam zákazníků s filtrováním a stránkováním. Osobní data jsou pseudonymizována.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      customer_id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID zákazníka
+        title: Customer Id
+      code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Kód zákazníka
+        title: Code
+      email:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: E-mail zákazníka
+        title: Email
+      phone:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Telefon zákazníka
+        title: Phone
+      active_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: 'Filtrovat podle stavu aktivní (výchozí: true)'
+        title: Active Yn
+      blocked_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: 'Filtrovat podle stavu blokován (výchozí: false)'
+        title: Blocked Yn
+      language:
+        anyOf:
+        - maxLength: 2
+          minLength: 2
+          type: string
+        - type: 'null'
+        default: null
+        description: Jazyk ISO 639-1
+        title: Language
+      pricelist:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat podle ceníku
+        title: Pricelist
+      last_update_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat zákazníky aktualizované od tohoto data (YYYY-MM-DD)
+        title: Last Update Time From
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_customersInput
+    type: object
+- name: list_categories
+  description: Seznam kategorií s filtrováním a stránkováním (s omezením velikosti
+    odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Kód kategorie
+        title: Code
+      category_id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: ID kategorie
+        title: Category Id
+      parent_id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Filtrovat podle ID nadřazené kategorie
+        title: Parent Id
+      active_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: 'Filtrovat podle stavu aktivní (výchozí: true)'
+        title: Active Yn
+      language:
+        anyOf:
+        - maxLength: 2
+          minLength: 2
+          type: string
+        - type: 'null'
+        default: null
+        description: Jazyk ISO 639-1
+        title: Language
+      last_update_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Filtrovat kategorie aktualizované od tohoto data (YYYY-MM-DD)
+        title: Last Update Time From
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_categoriesInput
+    type: object
+- name: list_labels
+  description: Seznam štítků produktů (s omezením velikosti odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID štítku
+        title: Id
+      type:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Typ štítku: action | new | sale | custom'
+        title: Type
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_labelsInput
+    type: object
+- name: list_availabilities
+  description: Seznam dostupností produktů (s omezením velikosti odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID dostupnosti
+        title: Id
+      type:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Typ dostupnosti: OnRequest | NotAvailable | InStock | Custom'
+        title: Type
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_availabilitiesInput
+    type: object
+- name: list_manufacturers
+  description: Seznam výrobců (s omezením velikosti odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID výrobce
+        title: Id
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_manufacturersInput
+    type: object
+- name: list_parameters
+  description: Seznam parametrů produktů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID parametru
+        title: Id
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_parametersInput
+    type: object
+- name: list_carts
+  description: 'Seznam košíků s omezením velikosti odpovědi a pseudonymizací zákazníků.
+
+
+    Bez filtru data nebo id se výchozí použijí košíky za posledních 7 dní.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID košíku
+        title: Id
+      creation_time_from:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Filtrovat košíky od data YYYY-MM-DD; výchozí: posledních 7 dní'
+        title: Creation Time From
+      language:
+        anyOf:
+        - maxLength: 2
+          minLength: 2
+          type: string
+        - type: 'null'
+        default: null
+        description: Jazyk ISO 639-1
+        title: Language
+      filled_delivery_info_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat košíky s vyplněnými doručovacími údaji
+        title: Filled Delivery Info Yn
+      customer_logged_in_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat košíky s přihlášenými zákazníky
+        title: Customer Logged In Yn
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_cartsInput
+    type: object
+- name: list_vouchers
+  description: Seznam slevových kupónů (s omezením velikosti odpovědi).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      voucher_code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Konkrétní kód kupónu
+        title: Voucher Code
+      active_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: 'Filtrovat podle stavu aktivní (výchozí: true)'
+        title: Active Yn
+      global_yn:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Filtrovat podle stavu opakovaně použitelný
+        title: Global Yn
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_vouchersInput
+    type: object
+- name: list_shipments
+  description: Seznam způsobů dopravy (vícejazyčné popisy jsou zkráceny).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID dopravy
+        title: Id
+      code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Kód dopravy
+        title: Code
+      type:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Typ dopravy: custom | ceskaPosta | slovenskaPosta | zasilkovna
+          | dpd | ppl | gls'
+        title: Type
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_shipmentsInput
+    type: object
+- name: list_payments
+  description: Seznam platebních metod (vícejazyčné popisy jsou zkráceny).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID platby
+        title: Id
+      code:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: Kód platby
+        title: Code
+      type:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        description: 'Typ platby: cash | cashOnDelivery | command | paypal | gopay
+          | stripe | custom'
+        title: Type
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+    title: list_paymentsInput
+    type: object
+- name: list_webhooks
+  description: Seznam nakonfigurovaných webhooků.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      id:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        description: Konkrétní ID webhooku
+        title: Id
+    title: list_webhooksInput
+    type: object
+- name: list_webhook_events
+  description: Seznam dostupných událostí webhooku.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: list_webhook_eventsInput
+    type: object
+- name: get_languages
+  description: Získej konfiguraci jazyků e-shopu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: get_languagesInput
+    type: object
+- name: get_shop_config
+  description: Získej konfiguraci a nastavení e-shopu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: get_shop_configInput
+    type: object
+- name: get_shop_owner
+  description: Získej fakturační údaje provozovatele e-shopu. Firemní data jsou pseudonymizována.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: get_shop_ownerInput
+    type: object
+- name: get_api_status
+  description: Získej stav API a seznam povolených endpointů pro aktuálního uživatele.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: get_api_statusInput
+    type: object
+- name: list_pricelists
+  description: Seznam ceníků.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: list_pricelistsInput
+    type: object

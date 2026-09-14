@@ -1,0 +1,12 @@
+{
+  "pocetCelkem": 2,
+  "ekonomickeSubjekty": [
+    {
+      "ico": "27074358",
+      "obchodniJmeno": "OpenMCP Test s.r.o.",
+      "pravniForma": "112",
+      "sidlo": {"textovaAdresa": "Testovací 1, Praha", "nazevObce": "Praha"}
+    }
+  ]
+}
+

@@ -1,0 +1,200 @@
+schema_version: 1
+slug: keboola
+name: Keboola
+version: 1.0.0
+category: data_platform
+summary: Čtecí přístup k bucketům, tabulkám, komponentám a jobům Keboola Storage.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: stack
+  required: true
+  secret: true
+- key: storage_token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  hosts:
+  - connection.keboola.com
+  - connection.eu-central-1.keboola.com
+  - connection.north-europe.azure.keboola.com
+  - connection.us-east4.gcp.keboola.com
+  - connection.europe-west3.gcp.keboola.com
+  port: 443
+  path_prefix: /v2/storage
+  methods:
+  - GET
+tools:
+- name: verify_token
+  description: 'Ověření Storage tokenu: projekt, oprávnění a vlastník.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_buckets
+  description: Seznam bucketů projektu, volitelně s metadaty.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      include_metadata:
+        default: false
+        title: Include Metadata
+        type: boolean
+    title: BucketList
+    type: object
+- name: list_tables
+  description: Seznam tabulek v projektu nebo v jednom bucketu, volitelně se sloupci.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      bucket_id:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+          type: string
+        - type: 'null'
+        default: null
+        title: Bucket Id
+      include_columns:
+        default: false
+        title: Include Columns
+        type: boolean
+    title: TableList
+    type: object
+- name: get_table
+  description: 'Detail tabulky: sloupce, primární klíč, velikost, import.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      table_id:
+        maxLength: 128
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Table Id
+        type: string
+    required:
+    - table_id
+    title: TableID
+    type: object
+- name: preview_table
+  description: Náhled dat tabulky (nejvýše 100 řádků, volitelný výběr sloupců).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      table_id:
+        maxLength: 128
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Table Id
+        type: string
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      columns:
+        anyOf:
+        - items:
+            maxLength: 128
+            minLength: 1
+            pattern: ^[A-Za-z0-9_][A-Za-z0-9_.-]*$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        title: Columns
+    required:
+    - table_id
+    title: TablePreview
+    type: object
+- name: list_components
+  description: Komponenty s konfiguracemi v projektu podle typu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      component_type:
+        anyOf:
+        - enum:
+          - extractor
+          - writer
+          - transformation
+          - application
+          - processor
+          - other
+          type: string
+        - type: 'null'
+        default: null
+        title: Component Type
+    title: ComponentList
+    type: object
+- name: list_configurations
+  description: Seznam konfigurací jedné komponenty.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      component_id:
+        maxLength: 128
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Component Id
+        type: string
+    required:
+    - component_id
+    title: ComponentID
+    type: object
+- name: list_jobs
+  description: Seznam Storage jobů projektu se stránkováním limit/offset.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+    title: JobList
+    type: object

@@ -1,0 +1,450 @@
+schema_version: 1
+slug: pohoda
+name: POHODA mServer
+version: 1.0.0
+category: erp
+summary: Čtecí přístup k fakturám, objednávkám, adresáři a zásobám POHODA přes mServer.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: mserver_url
+  required: true
+  secret: true
+- key: username
+  required: true
+  secret: true
+- key: password
+  required: true
+  secret: true
+- key: ico
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: customer_mserver
+  host_source: credential:mserver_url
+  port: 443
+  path_prefix: /xml
+  methods:
+  - POST
+tools:
+- name: list_invoices
+  description: Seznam dokladů agendy faktur (listInvoiceRequest) s filtrem období,
+    firmy a IČ.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 50
+        description: Nejvyšší počet záznamů (limit/count)
+        maximum: 500
+        minimum: 1
+        title: Count
+        type: integer
+      id_from:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit záznamy s ID od této hodnoty (limit/idFrom)
+        title: Id From
+      date_from:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum dokladu od (YYYY-MM-DD)
+        title: Date From
+      date_till:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum dokladu do (YYYY-MM-DD), nejvýše 366 dní
+        title: Date Till
+      company:
+        anyOf:
+        - maxLength: 255
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Firma partnera (selectedCompanys)
+        title: Company
+      ico:
+        anyOf:
+        - pattern: ^[0-9]{6,15}$
+          type: string
+        - type: 'null'
+        default: null
+        description: IČ partnera (selectedIco)
+        title: Ico
+      last_changes:
+        anyOf:
+        - maxLength: 19
+          minLength: 19
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od (YYYY-MM-DDThh:mm:ss)
+        title: Last Changes
+      invoice_type:
+        default: issuedInvoice
+        description: Agenda faktur (atribut invoiceType)
+        enum:
+        - issuedInvoice
+        - issuedCreditNotice
+        - issuedDebitNote
+        - issuedAdvanceInvoice
+        - receivable
+        - issuedProformaInvoice
+        - penalty
+        - issuedCorrectiveTax
+        - receivedInvoice
+        - receivedCreditNotice
+        - receivedDebitNote
+        - receivedAdvanceInvoice
+        - commitment
+        - receivedProformaInvoice
+        - receivedCorrectiveTax
+        - business
+        title: Invoice Type
+        type: string
+    title: InvoiceList
+    type: object
+- name: get_invoice
+  description: Detail dokladu agendy faktur podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_id:
+        description: ID dokladu v POHODA
+        maximum: 9007199254740991
+        minimum: 1
+        title: Invoice Id
+        type: integer
+      invoice_type:
+        default: issuedInvoice
+        description: Agenda faktur (atribut invoiceType)
+        enum:
+        - issuedInvoice
+        - issuedCreditNotice
+        - issuedDebitNote
+        - issuedAdvanceInvoice
+        - receivable
+        - issuedProformaInvoice
+        - penalty
+        - issuedCorrectiveTax
+        - receivedInvoice
+        - receivedCreditNotice
+        - receivedDebitNote
+        - receivedAdvanceInvoice
+        - commitment
+        - receivedProformaInvoice
+        - receivedCorrectiveTax
+        - business
+        title: Invoice Type
+        type: string
+    required:
+    - invoice_id
+    title: InvoiceID
+    type: object
+- name: list_orders
+  description: Seznam objednávek (listOrderRequest) s filtrem období, firmy a IČ.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 50
+        description: Nejvyšší počet záznamů (limit/count)
+        maximum: 500
+        minimum: 1
+        title: Count
+        type: integer
+      id_from:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit záznamy s ID od této hodnoty (limit/idFrom)
+        title: Id From
+      date_from:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum dokladu od (YYYY-MM-DD)
+        title: Date From
+      date_till:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum dokladu do (YYYY-MM-DD), nejvýše 366 dní
+        title: Date Till
+      company:
+        anyOf:
+        - maxLength: 255
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Firma partnera (selectedCompanys)
+        title: Company
+      ico:
+        anyOf:
+        - pattern: ^[0-9]{6,15}$
+          type: string
+        - type: 'null'
+        default: null
+        description: IČ partnera (selectedIco)
+        title: Ico
+      last_changes:
+        anyOf:
+        - maxLength: 19
+          minLength: 19
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od (YYYY-MM-DDThh:mm:ss)
+        title: Last Changes
+      order_type:
+        default: receivedOrder
+        description: Agenda objednávek (atribut orderType)
+        enum:
+        - issuedOrder
+        - receivedOrder
+        title: Order Type
+        type: string
+    title: OrderList
+    type: object
+- name: get_order
+  description: Detail objednávky podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      order_id:
+        description: ID objednávky v POHODA
+        maximum: 9007199254740991
+        minimum: 1
+        title: Order Id
+        type: integer
+      order_type:
+        default: receivedOrder
+        description: Agenda objednávek (atribut orderType)
+        enum:
+        - issuedOrder
+        - receivedOrder
+        title: Order Type
+        type: string
+    required:
+    - order_id
+    title: OrderID
+    type: object
+- name: list_partners
+  description: Seznam záznamů adresáře (listAddressBookRequest) s filtrem firmy, jména,
+    obce a IČ.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 50
+        description: Nejvyšší počet záznamů (limit/count)
+        maximum: 500
+        minimum: 1
+        title: Count
+        type: integer
+      id_from:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit záznamy s ID od této hodnoty (limit/idFrom)
+        title: Id From
+      company:
+        anyOf:
+        - maxLength: 255
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Firma
+        title: Company
+      name:
+        anyOf:
+        - maxLength: 32
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Jméno
+        title: Name
+      city:
+        anyOf:
+        - maxLength: 45
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Obec
+        title: City
+      ico:
+        anyOf:
+        - pattern: ^[0-9]{6,15}$
+          type: string
+        - type: 'null'
+        default: null
+        description: IČ
+        title: Ico
+      last_changes:
+        anyOf:
+        - maxLength: 19
+          minLength: 19
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od (YYYY-MM-DDThh:mm:ss)
+        title: Last Changes
+    title: PartnerList
+    type: object
+- name: get_partner
+  description: Detail záznamu adresáře podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      partner_id:
+        description: ID záznamu adresáře v POHODA
+        maximum: 9007199254740991
+        minimum: 1
+        title: Partner Id
+        type: integer
+    required:
+    - partner_id
+    title: PartnerID
+    type: object
+- name: list_stock
+  description: Seznam zásob (listStockRequest) s filtrem kódu, EAN a názvu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 50
+        description: Nejvyšší počet záznamů (limit/count)
+        maximum: 500
+        minimum: 1
+        title: Count
+        type: integer
+      id_from:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit záznamy s ID od této hodnoty (limit/idFrom)
+        title: Id From
+      code:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Kód zásoby
+        title: Code
+      ean:
+        anyOf:
+        - pattern: ^[0-9]{8,14}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Čárový kód (EAN)
+        title: Ean
+      name:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Název zásoby
+        title: Name
+      last_changes:
+        anyOf:
+        - maxLength: 19
+          minLength: 19
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od (YYYY-MM-DDThh:mm:ss)
+        title: Last Changes
+    title: StockList
+    type: object
+- name: get_stock_item
+  description: Detail zásoby podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      stock_id:
+        description: ID zásoby v POHODA
+        maximum: 9007199254740991
+        minimum: 1
+        title: Stock Id
+        type: integer
+    required:
+    - stock_id
+    title: StockID
+    type: object

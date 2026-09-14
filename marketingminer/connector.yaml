@@ -1,0 +1,217 @@
+schema_version: 1
+slug: marketingminer
+name: Marketing Miner
+version: 1.0.0
+category: marketing
+summary: Čtecí přístup k hledanosti klíčových slov a viditelnosti domén Marketing
+  Miner.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: profilers-api.marketingminer.com
+  port: 443
+  methods:
+  - GET
+tools:
+- name: keyword_search_volume
+  description: Měsíční hledanost, CPC, sezónnost a obtížnost jednoho klíčového slova
+    pro daný trh.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      keyword:
+        maxLength: 80
+        minLength: 2
+        title: Keyword
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - sk
+        - pl
+        - hu
+        - ro
+        - gb
+        - us
+        title: Lang
+        type: string
+    required:
+    - keyword
+    title: KeywordSearchVolume
+    type: object
+- name: keyword_suggestions
+  description: Návrhy souvisejících klíčových slov (otázky, nová, trendová) k zadanému
+    výrazu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      keyword:
+        maxLength: 80
+        minLength: 2
+        title: Keyword
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - sk
+        - pl
+        - hu
+        - ro
+        - gb
+        - us
+        title: Lang
+        type: string
+      suggestions_type:
+        anyOf:
+        - enum:
+          - questions
+          - new
+          - trending
+          type: string
+        - type: 'null'
+        default: null
+        title: Suggestions Type
+      with_keyword_data:
+        default: false
+        title: With Keyword Data
+        type: boolean
+    required:
+    - keyword
+    title: KeywordSuggestions
+    type: object
+- name: website_stats
+  description: 'Viditelnost domény nebo URL ve vyhledávání: odhad návštěvnosti a počet
+    klíčových slov.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      target:
+        maxLength: 253
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9._~:/?#@!$&'()*+,;=%-]*$
+        title: Target
+        type: string
+      target_type:
+        default: domain
+        enum:
+        - domain
+        - subdomain
+        - exact
+        - prefix
+        title: Target Type
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - sk
+        - pl
+        - hu
+        - ro
+        - gb
+        - us
+        title: Lang
+        type: string
+      scheme:
+        anyOf:
+        - enum:
+          - https
+          - http
+          type: string
+        - type: 'null'
+        default: null
+        title: Scheme
+    required:
+    - target
+    title: WebsiteStats
+    type: object
+- name: website_stats_range
+  description: Vývoj viditelnosti domény nebo URL v čase (denní, týdenní nebo měsíční
+    řada).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      target:
+        maxLength: 253
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9._~:/?#@!$&'()*+,;=%-]*$
+        title: Target
+        type: string
+      target_type:
+        default: domain
+        enum:
+        - domain
+        - subdomain
+        - exact
+        - prefix
+        title: Target Type
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - sk
+        - pl
+        - hu
+        - ro
+        - gb
+        - us
+        title: Lang
+        type: string
+      scheme:
+        anyOf:
+        - enum:
+          - https
+          - http
+          type: string
+        - type: 'null'
+        default: null
+        title: Scheme
+      period:
+        anyOf:
+        - enum:
+          - daily
+          - weekly
+          - monthly
+          type: string
+        - type: 'null'
+        default: null
+        title: Period
+    required:
+    - target
+    title: WebsiteStatsRange
+    type: object

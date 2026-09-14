@@ -1,0 +1,523 @@
+schema_version: 1
+slug: fapi
+name: FAPI
+version: 1.0.0
+category: accounting
+summary: Čtecí přístup k fakturám, klientům, formulářům, položkám a platbám FAPI.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: username
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.fapi.cz
+  port: 443
+  methods:
+  - GET
+tools:
+- name: list_invoices
+  description: Stránka faktur s filtrem stavu, typu, klienta, formuláře, dat a hledání.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      number:
+        anyOf:
+        - pattern: ^[A-Za-z0-9][A-Za-z0-9 ._/-]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo faktury.
+        title: Number
+      variable_symbol:
+        anyOf:
+        - pattern: ^[0-9]{1,10}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Variabilní symbol.
+        title: Variable Symbol
+      type:
+        anyOf:
+        - pattern: ^[a-z_]{1,32}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Typ dokladu (např. invoice, proforma).
+        title: Type
+      status:
+        anyOf:
+        - enum:
+          - cancelled
+          - paid
+          - issued
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav faktury.
+        title: Status
+      client:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id klienta.
+        title: Client
+      project:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id projektu.
+        title: Project
+      form:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id formuláře.
+        title: Form
+      series:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id číselné řady.
+        title: Series
+      parent:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id nadřazené faktury.
+        title: Parent
+      last_invoice_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Jen faktury s id větším než tato hodnota.
+        title: Last Invoice Id
+      search:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Hledání v čísle, VS, jménu zákazníka a datech.
+        title: Search
+      create_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení od (YYYY-MM-DD).
+        title: Create Date From
+      create_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení do (YYYY-MM-DD).
+        title: Create Date To
+      payday_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum splatnosti od (YYYY-MM-DD).
+        title: Payday Date From
+      payday_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum splatnosti do (YYYY-MM-DD).
+        title: Payday Date To
+      paid_on_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum úhrady od (YYYY-MM-DD).
+        title: Paid On From
+      paid_on_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum úhrady do (YYYY-MM-DD).
+        title: Paid On To
+      last_modified_after:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen faktury změněné po tomto čase (YYYY-MM-DD HH:MM:SS).
+        title: Last Modified After
+      order_by:
+        anyOf:
+        - enum:
+          - id
+          - status
+          - variable_symbol
+          - customer_name
+          - create_date
+          - created_on
+          - payday_date
+          - paid_on
+          - type
+          - total
+          - last_modified_on
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení.
+        title: Order By
+    title: InvoiceList
+    type: object
+- name: get_invoice
+  description: Detail faktury včetně položek, plateb a zákazníka.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_id:
+        description: Id faktury.
+        maximum: 9007199254740991
+        minimum: 1
+        title: Invoice Id
+        type: integer
+    required:
+    - invoice_id
+    title: InvoiceID
+    type: object
+- name: list_clients
+  description: Stránka klientů s filtrem e-mailu, projektu a hledání.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      email:
+        anyOf:
+        - pattern: ^[^\s@:]{1,128}@[^\s@:]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Přesný e-mail klienta.
+        title: Email
+      project:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id projektu.
+        title: Project
+      search:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Hledání ve jménu, firmě, e-mailu, telefonu, IČ a DIČ.
+        title: Search
+      order_by:
+        anyOf:
+        - enum:
+          - id
+          - first_name
+          - last_name
+          - email
+          - phone
+          - ic
+          - dic
+          - ic_dph
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení.
+        title: Order By
+      show_statistics:
+        default: false
+        description: Přidat statistiky klienta.
+        title: Show Statistics
+        type: boolean
+    title: ClientList
+    type: object
+- name: get_client
+  description: Detail klienta podle Id, volitelně se statistikami.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      client_id:
+        description: Id klienta.
+        maximum: 9007199254740991
+        minimum: 1
+        title: Client Id
+        type: integer
+      show_statistics:
+        default: false
+        description: Přidat statistiky klienta.
+        title: Show Statistics
+        type: boolean
+    required:
+    - client_id
+    title: ClientID
+    type: object
+- name: list_forms
+  description: Stránka prodejních formulářů s filtrem projektu a názvu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      project:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id projektu.
+        title: Project
+      search:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Hledání v názvu formuláře.
+        title: Search
+      show_deleted:
+        default: false
+        description: Zahrnout smazané formuláře.
+        title: Show Deleted
+        type: boolean
+      order_by:
+        anyOf:
+        - enum:
+          - id
+          - name
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení.
+        title: Order By
+    title: FormList
+    type: object
+- name: get_form
+  description: Detail formuláře, volitelně s platebními metodami.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      form_id:
+        description: Id formuláře.
+        maximum: 9007199254740991
+        minimum: 1
+        title: Form Id
+        type: integer
+      with_payment_methods:
+        default: false
+        description: Přidat dostupné platební metody.
+        title: With Payment Methods
+        type: boolean
+    required:
+    - form_id
+    title: FormID
+    type: object
+- name: list_item_templates
+  description: Stránka šablon položek (produktů) s filtrem názvu, kódu a formuláře.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      form:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Jen položky použité ve formuláři.
+        title: Form
+      name:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr podle názvu položky.
+        title: Name
+      code:
+        anyOf:
+        - pattern: ^[A-Za-z0-9][A-Za-z0-9 ._/-]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr podle kódu položky.
+        title: Code
+    title: ItemTemplateList
+    type: object
+- name: list_payments
+  description: Stránka přijatých plateb s filtrem data a spárování.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      project:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id projektu.
+        title: Project
+      date:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum platby (YYYY-MM-DD).
+        title: Date
+      unpaired:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Jen nespárované platby.
+        title: Unpaired
+      unresolved:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Jen nevyřešené platby.
+        title: Unresolved
+    title: PaymentList
+    type: object

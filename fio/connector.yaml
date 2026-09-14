@@ -1,0 +1,108 @@
+schema_version: 1
+slug: fio
+name: Fio banka
+version: 1.0.0
+category: banking
+summary: Čtecí přístup k pohybům a výpisům účtu Fio banky.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: fioapi.fio.cz
+  port: 443
+  path_prefix: /v1/rest
+  methods:
+  - GET
+tools:
+- name: list_transactions
+  description: Pohyby na účtu za období nejvýše 90 dní.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      date_from:
+        description: Začátek období (YYYY-MM-DD)
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec období (YYYY-MM-DD), nejvýše 90 dní po začátku
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+    required:
+    - date_from
+    - date_to
+    title: Period
+    type: object
+- name: last_transactions
+  description: Pohyby od posledního stažení; neprázdná odpověď posune serverovou zarážku
+    Fio.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: get_statement
+  description: Oficiální výpis pohybů podle roku a čísla výpisu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      year:
+        description: Rok výpisu (rrrr)
+        maximum: 2100
+        minimum: 2000
+        title: Year
+        type: integer
+      statement_id:
+        description: Číslo výpisu v daném roce
+        maximum: 999999
+        minimum: 1
+        title: Statement Id
+        type: integer
+    required:
+    - year
+    - statement_id
+    title: Statement
+    type: object
+- name: last_statement_number
+  description: Rok a číslo posledního vytvořeného oficiálního výpisu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object

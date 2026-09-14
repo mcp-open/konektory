@@ -1,0 +1,81 @@
+schema_version: 1
+slug: heureka
+name: Heureka Marketplace
+version: 1.0.0
+category: ecommerce
+summary: Čtecí přístup ke stavu objednávek, poboček a obchodu v Heureka Marketplace.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: country
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  hosts:
+  - ssl.heureka.cz
+  - ssl.heureka.sk
+  port: 443
+  path_prefix: /api/cart
+  methods:
+  - GET
+tools:
+- name: get_order_status
+  description: Stav objednávky Heureka Marketplace podle ID objednávky (stav, interní
+    a Heureka ID).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      order_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Order Id
+        type: integer
+    required:
+    - order_id
+    title: OrderID
+    type: object
+- name: list_stores
+  description: Pobočky a výdejní místa obchodu uložená na Heurece (ID, typ, název,
+    město).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object
+- name: get_shop_status
+  description: Stav aktivace obchodu v Heureka Marketplace včetně případné chyby deaktivace.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object

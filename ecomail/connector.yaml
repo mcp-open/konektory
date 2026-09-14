@@ -1,0 +1,263 @@
+schema_version: 1
+slug: ecomail
+name: Ecomail
+version: 1.0.0
+category: email_marketing
+summary: Čtecí přístup k seznamům, kontaktům, kampaním, šablonám a automatizacím Ecomail.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api2.ecomailapp.cz
+  port: 443
+  methods:
+  - GET
+tools:
+- name: list_lists
+  description: Všechny seznamy kontaktů v účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object
+- name: get_list
+  description: Detail seznamu včetně vlastních polí, skupin a segmentů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      list_id:
+        description: ID seznamu kontaktů
+        maximum: 9007199254740991
+        minimum: 1
+        title: List Id
+        type: integer
+    required:
+    - list_id
+    title: ListID
+    type: object
+- name: list_subscribers
+  description: Stránka kontaktů seznamu s filtrem stavu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      list_id:
+        description: ID seznamu kontaktů
+        maximum: 9007199254740991
+        minimum: 1
+        title: List Id
+        type: integer
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 100000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 20
+        description: Počet kontaktů na stránku
+        maximum: 500
+        minimum: 1
+        title: Per Page
+        type: integer
+      status:
+        default: subscribed
+        description: Filtr stavu kontaktu v seznamu
+        enum:
+        - subscribed
+        - unsubscribed
+        - not_confirmed
+        - bounced
+        - complained
+        title: Status
+        type: string
+    required:
+    - list_id
+    title: SubscriberList
+    type: object
+- name: get_subscriber
+  description: Detail kontaktu podle e-mailu (globálně/v seznamu).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      email:
+        description: E-mailová adresa kontaktu
+        pattern: ^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}$
+        title: Email
+        type: string
+      list_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID seznamu; bez něj se vrací globální detail kontaktu
+        title: List Id
+    required:
+    - email
+    title: SubscriberDetail
+    type: object
+- name: list_campaigns
+  description: Kampaně s filtry, řazením a stránkováním.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      per_page:
+        default: 20
+        description: Počet kampaní na stránku
+        maximum: 200
+        minimum: 1
+        title: Per Page
+        type: integer
+      sort_by:
+        default: id
+        description: Sloupec řazení
+        enum:
+        - id
+        - sent_at
+        - changed_at
+        - title
+        - status
+        title: Sort By
+        type: string
+      sort_dir:
+        default: desc
+        description: Směr řazení
+        enum:
+        - asc
+        - desc
+        title: Sort Dir
+        type: string
+      campaign_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Filtr podle ID kampaně
+        title: Campaign Id
+      title:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr podle názvu kampaně
+        title: Title
+      subject:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr podle předmětu
+        title: Subject
+      status:
+        anyOf:
+        - maximum: 100
+          minimum: 0
+          type: integer
+        - type: 'null'
+        default: null
+        description: Filtr podle kódu stavu
+        title: Status
+      date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Od data (YYYY-MM-DD)
+        title: Date From
+      date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Do data (YYYY-MM-DD)
+        title: Date To
+    title: CampaignList
+    type: object
+- name: campaign_stats
+  description: Souhrnné statistiky kampaně, volitelně v rozsahu dat.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      campaign_id:
+        description: ID kampaně
+        maximum: 9007199254740991
+        minimum: 1
+        title: Campaign Id
+        type: integer
+      from_date:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Od data (YYYY-MM-DD)
+        title: From Date
+      to_date:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Do data (YYYY-MM-DD)
+        title: To Date
+    required:
+    - campaign_id
+    title: CampaignStats
+    type: object
+- name: list_templates
+  description: Všechny e-mailové šablony v účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object
+- name: list_automations
+  description: Všechny automatizace (pipelines) v účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object

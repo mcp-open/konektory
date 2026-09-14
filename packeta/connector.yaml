@@ -1,0 +1,193 @@
+schema_version: 1
+slug: packeta
+name: Packeta
+version: 1.0.0
+category: logistics
+summary: Čtecí přístup ke sledování zásilek a seznamu dopravců Packeta (Zásilkovna).
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_password
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  hosts:
+  - www.zasilkovna.cz
+  - pickup-point.api.packeta.com
+  port: 443
+  methods:
+  - GET
+  - POST
+tools:
+- name: packet_status
+  description: Aktuální stav zásilky Packeta podle ID zásilky.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      packet_id:
+        maxLength: 17
+        minLength: 6
+        pattern: ^Z?[0-9]{6,16}$
+        title: Packet Id
+        type: string
+    required:
+    - packet_id
+    title: Packet
+    type: object
+- name: packet_tracking
+  description: Celá historie stavů zásilky v síti Packeta.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      packet_id:
+        maxLength: 17
+        minLength: 6
+        pattern: ^Z?[0-9]{6,16}$
+        title: Packet Id
+        type: string
+    required:
+    - packet_id
+    title: Packet
+    type: object
+- name: packet_courier_tracking
+  description: Historie stavů zásilky u externího dopravce.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      packet_id:
+        maxLength: 17
+        minLength: 6
+        pattern: ^Z?[0-9]{6,16}$
+        title: Packet Id
+        type: string
+    required:
+    - packet_id
+    title: Packet
+    type: object
+- name: packet_info
+  description: Doplňující informace o zásilce a jejím předání dopravci.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      packet_id:
+        maxLength: 17
+        minLength: 6
+        pattern: ^Z?[0-9]{6,16}$
+        title: Packet Id
+        type: string
+    required:
+    - packet_id
+    title: Packet
+    type: object
+- name: packet_stored_until
+  description: Datum, do kdy je zásilka uložena k vyzvednutí.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      packet_id:
+        maxLength: 17
+        minLength: 6
+        pattern: ^Z?[0-9]{6,16}$
+        title: Packet Id
+        type: string
+    required:
+    - packet_id
+    title: Packet
+    type: object
+- name: shipment_packets
+  description: Seznam zásilek ve svozovém listu podle D/B kódu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      shipment_id:
+        maxLength: 40
+        minLength: 5
+        pattern: ^[A-Z0-9*-]{5,40}$
+        title: Shipment Id
+        type: string
+    required:
+    - shipment_id
+    title: Shipment
+    type: object
+- name: list_carriers
+  description: Stránkovaný seznam dopravců z feedu v5 s filtrem země.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      lang:
+        default: cs
+        enum:
+        - cs
+        - sk
+        - en
+        - hu
+        - pl
+        - ro
+        - de
+        title: Lang
+        type: string
+      country:
+        anyOf:
+        - maxLength: 2
+          minLength: 2
+          pattern: ^[A-Za-z]{2}$
+          type: string
+        - type: 'null'
+        default: null
+        title: Country
+      name:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        title: Name
+      limit:
+        default: 50
+        maximum: 200
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+    title: CarrierList
+    type: object

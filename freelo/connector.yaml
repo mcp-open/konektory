@@ -1,0 +1,135 @@
+schema_version: 1
+slug: freelo
+name: Freelo
+version: 1.0.0
+category: project_management
+summary: Čtecí přístup k projektům a úkolům Freelo.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: email
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.freelo.io
+  port: 443
+  path_prefix: /v1
+  methods:
+  - GET
+tools:
+- name: list_projects
+  description: Seznam vlastních aktivních projektů a tasklistů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      order_by:
+        default: name
+        enum:
+        - name
+        - date_add
+        - date_edited_at
+        title: Order By
+        type: string
+      order:
+        default: asc
+        enum:
+        - asc
+        - desc
+        title: Order
+        type: string
+    title: ProjectList
+    type: object
+- name: get_project
+  description: Detail projektu včetně dostupných tasklistů a rozpočtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      project_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+    required:
+    - project_id
+    title: ProjectID
+    type: object
+- name: list_tasks
+  description: Stránka úkolů s filtrem projektu nebo názvu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      project_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Project Id
+      search:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        title: Search
+    title: TaskList
+    type: object
+- name: get_task
+  description: Detail úkolu s omezeným počtem nejnovějších komentářů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      task_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Task Id
+        type: integer
+      comments_limit:
+        default: 20
+        maximum: 100
+        minimum: 0
+        title: Comments Limit
+        type: integer
+    required:
+    - task_id
+    title: TaskID
+    type: object

@@ -1,0 +1,19 @@
+{
+  "ico": "27074358",
+  "obchodniJmeno": "OpenMCP Test s.r.o.",
+  "pravniForma": "112",
+  "datumVzniku": "2003-08-18",
+  "dic": "CZ27074358",
+  "sidlo": {
+    "textovaAdresa": "Testovací 1, 11000 Praha",
+    "nazevObce": "Praha",
+    "psc": 11000
+  },
+  "czNace": ["62010"],
+  "seznamRegistraci": {
+    "stavZdrojeVr": "AKTIVNI",
+    "stavZdrojeRes": "AKTIVNI",
+    "stavZdrojeRzp": "ZANIKLY"
+  }
+}
+

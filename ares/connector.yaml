@@ -1,0 +1,52 @@
+schema_version: 1
+slug: ares
+name: ARES
+version: 1.0.0
+category: registry
+summary: Ověření českých ekonomických subjektů podle IČO nebo obchodního jména.
+auth:
+  type: none
+credentials: []
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: false
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: memory_single_replica
+egress:
+  host: ares.gov.cz
+  port: 443
+  path_prefix: /ekonomicke-subjekty-v-be/rest
+  methods: [GET, POST]
+tools:
+  - name: ares_subjekt_lookup
+    description: Detail subjektu podle osmimístného IČO.
+    read_only: true
+    input_schema:
+      type: object
+      additionalProperties: false
+      required: [ico]
+      properties:
+        ico: {type: string, pattern: '^[0-9]{8}$'}
+  - name: ares_subjekt_vyhledat
+    description: Hledání subjektů podle obchodního jména a volitelně adresy.
+    read_only: true
+    input_schema:
+      type: object
+      additionalProperties: false
+      required: [obchodni_jmeno]
+      properties:
+        obchodni_jmeno: {type: string, minLength: 2}
+        adresa: {type: [string, 'null'], default: null}
+        start: {type: integer, minimum: 0, default: 0}
+        pocet: {type: integer, minimum: 1, maximum: 50, default: 10}

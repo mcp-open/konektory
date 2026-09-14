@@ -1,0 +1,171 @@
+schema_version: 1
+slug: reservio
+name: Reservio
+version: 1.0.0
+category: booking
+summary: Čtecí přístup k podniku, službám, zdrojům, dostupnosti a rezervacím Reservio.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: access_token
+  required: true
+  secret: true
+- key: business_id
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.reservio.com
+  port: 443
+  path_prefix: /v2
+  methods:
+  - GET
+tools:
+- name: get_business
+  description: Detail podniku (adresa, nastavení rezervací, časová zóna).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_services
+  description: Seznam služeb podniku (délka, cena, kapacita).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: get_service
+  description: Detail služby podniku.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      service_id:
+        description: ID služby
+        maxLength: 36
+        minLength: 36
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        title: Service Id
+        type: string
+    required:
+    - service_id
+    title: ServiceID
+    type: object
+- name: list_resources
+  description: Seznam zdrojů podniku (zaměstnanci, místnosti).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_opening_hours
+  description: Otevírací doba podniku po dnech v týdnu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: booking_slots
+  description: Volné rezervační sloty pro službu (a volitelně zdroj) v ohraničeném
+    intervalu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      date_from:
+        description: Začátek intervalu (YYYY-MM-DD, filter[from])
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec intervalu (YYYY-MM-DD, filter[to]), max. 3 měsíce
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+      resource_id:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen pro zdroj (filter[resourceId])
+        title: Resource Id
+      service_id:
+        description: Služba pro generování slotů (filter[serviceId])
+        maxLength: 36
+        minLength: 36
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        title: Service Id
+        type: string
+    required:
+    - date_from
+    - date_to
+    - service_id
+    title: BookingSlots
+    type: object
+- name: list_events
+  description: Události kalendáře podniku seřazené podle vytvoření.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      sort:
+        default: -createdAt
+        description: Řazení podle vytvoření (sort; - = sestupně)
+        enum:
+        - createdAt
+        - -createdAt
+        title: Sort
+        type: string
+    title: Sorted
+    type: object
+- name: list_bookings
+  description: Rezervace podniku seřazené podle vytvoření.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      sort:
+        default: -createdAt
+        description: Řazení podle vytvoření (sort; - = sestupně)
+        enum:
+        - createdAt
+        - -createdAt
+        title: Sort
+        type: string
+    title: Sorted
+    type: object

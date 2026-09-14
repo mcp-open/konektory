@@ -1,0 +1,569 @@
+schema_version: 1
+slug: raynet
+name: RAYNET
+version: 1.0.0
+category: crm
+summary: Čtecí přístup k CRM RAYNET v českém regionu.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: instance_name
+  required: true
+  secret: true
+- key: username
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: app.raynet.cz
+  port: 443
+  path_prefix: /api/v2
+  methods:
+  - GET
+tools:
+- name: raynet_whoami
+  description: Informace o připojeném provider účtu s povinnou PII ochranou.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: raynet_resources
+  description: Pevný seznam podporovaných zdrojů a číselníků adaptéru.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: search_companies
+  description: Stránka klientů filtrovaná podle jména, IČO a vlastníka.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+      fulltext:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Fulltext
+      name:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Name
+      regNumber:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Regnumber
+      role:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Role
+      state:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: State
+      category:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Category
+      owner:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Owner
+      sortColumn:
+        anyOf:
+        - enum:
+          - id
+          - name
+          - rowInfo.createdAt
+          - rowInfo.updatedAt
+          type: string
+        - type: 'null'
+        default: null
+        title: Sortcolumn
+      sortDirection:
+        anyOf:
+        - enum:
+          - ASC
+          - DESC
+          type: string
+        - type: 'null'
+        default: null
+        title: Sortdirection
+    title: CompanySearch
+    type: object
+- name: get_company
+  description: Detail klienta podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      company_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Company Id
+        type: integer
+    required:
+    - company_id
+    title: CompanyID
+    type: object
+- name: get_company_by_ext
+  description: Detail klienta podle externího ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ext_id:
+        maxLength: 128
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Ext Id
+        type: string
+    required:
+    - ext_id
+    title: ExtID
+    type: object
+- name: search_persons
+  description: Stránka kontaktních osob; kontaktní údaje jsou pseudonymizované.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+      fulltext:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Fulltext
+      firstName:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Firstname
+      lastName:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Lastname
+      category:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Category
+      owner:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Owner
+      company_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Company Id
+    title: PersonSearch
+    type: object
+- name: get_person
+  description: Detail kontaktní osoby podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      person_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Person Id
+        type: integer
+    required:
+    - person_id
+    title: PersonID
+    type: object
+- name: get_person_by_ext
+  description: Detail kontaktní osoby podle externího ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ext_id:
+        maxLength: 128
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Ext Id
+        type: string
+    required:
+    - ext_id
+    title: ExtID
+    type: object
+- name: search_business_cases
+  description: Stránka obchodních případů podle klienta a stavu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+      fulltext:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Fulltext
+      name:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Name
+      company:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Company
+      owner:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Owner
+      status:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Status
+      businessCasePhase:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Businesscasephase
+    title: BusinessCaseSearch
+    type: object
+- name: get_business_case
+  description: Detail obchodního případu podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      business_case_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Business Case Id
+        type: integer
+    required:
+    - business_case_id
+    title: BusinessCaseID
+    type: object
+- name: search_leads
+  description: Stránka leadů podle jména, stavu a vlastníka.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+      fulltext:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Fulltext
+      companyName:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Companyname
+      lastName:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Lastname
+      status:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Status
+      owner:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Owner
+    title: LeadSearch
+    type: object
+- name: get_lead
+  description: Detail leadu podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      lead_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Lead Id
+        type: integer
+    required:
+    - lead_id
+    title: LeadID
+    type: object
+- name: raynet_list
+  description: Jedna stránka podporovaného zdroje, jen pevně povolené filtry.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+      resource:
+        enum:
+        - company
+        - person
+        - lead
+        - businessCase
+        - offer
+        - salesOrder
+        - project
+        - product
+        title: Resource
+        type: string
+      filters:
+        anyOf:
+        - additionalProperties:
+            anyOf:
+            - type: string
+            - type: integer
+            - type: boolean
+          maxProperties: 20
+          type: object
+        - type: 'null'
+        default: null
+        title: Filters
+    required:
+    - resource
+    title: GenericList
+    type: object
+- name: raynet_get
+  description: Detail podporovaného zdroje podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      resource:
+        enum:
+        - company
+        - person
+        - lead
+        - businessCase
+        - offer
+        - salesOrder
+        - project
+        - product
+        title: Resource
+        type: string
+      record_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - maxLength: 128
+          minLength: 1
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+          type: string
+        title: Record Id
+    required:
+    - resource
+    - record_id
+    title: GenericGet
+    type: object
+- name: raynet_get_by_ext
+  description: Detail podporovaného zdroje podle externího ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ext_id:
+        maxLength: 128
+        minLength: 1
+        pattern: ^[A-Za-z0-9][A-Za-z0-9_.:+-]*$
+        title: Ext Id
+        type: string
+      resource:
+        enum:
+        - company
+        - person
+        - lead
+        - businessCase
+        - offer
+        - salesOrder
+        - project
+        - product
+        title: Resource
+        type: string
+    required:
+    - ext_id
+    - resource
+    title: GenericExt
+    type: object
+- name: raynet_codebook
+  description: Jedna stránka podporovaného číselníku.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        maximum: 10000
+        minimum: 0
+        title: Offset
+        type: integer
+      name:
+        enum:
+        - companyCategory
+        - personCategory
+        - businessCaseCategory
+        - businessCasePhase
+        - businessCaseType
+        - leadCategory
+        - leadPhase
+        - currency
+        - taxRate
+        - productCategory
+        - productLine
+        - offerCategory
+        - offerStatus
+        - salesOrderCategory
+        - salesOrderStatus
+        - projectStatus
+        title: Name
+        type: string
+    required:
+    - name
+    title: CodebookList
+    type: object

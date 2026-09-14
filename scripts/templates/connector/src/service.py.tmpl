@@ -1,0 +1,53 @@
+"""Scaffolded service for __NAME__.
+
+Installation-bound credentials; no provider client yet.
+"""
+
+from __future__ import annotations
+
+import httpx
+from openmcp_connector_runtime import ConnectorError, ErrorCode, InvocationContext, ToolEnvelope
+from openmcp_connector_runtime.provider import credentials
+from pydantic import BaseModel
+
+SLUG = "__SLUG__"
+VERSION = "__VERSION__"
+# Provider credential keys are not guessed by the scaffold. List the exact keys the
+# platform provisions; the SDK additionally requires ``pii_key`` (>= 32 bytes) always.
+REQUIRED_CREDENTIALS: tuple[str, ...] = ()
+# No provider origin is configured. Once egress is approved, build a fixed HTTPS
+# ``UpstreamClient(ORIGIN, transport=self.transport)`` per invocation, close it in
+# ``finally`` and wrap the payload with ``private_envelope`` before returning it.
+NOT_IMPLEMENTED = "Nástroj zatím není implementován; provider není napojen."
+
+
+class __CLASS__:
+    def __init__(self, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
+        # Kept for tests: a future provider client receives ``httpx.MockTransport`` here.
+        self.transport = transport
+
+    async def close(self) -> None:
+        pass  # No shared client; every invocation must own and close its own.
+
+    @staticmethod
+    def _credentials(context: InvocationContext) -> dict[str, str]:
+        return credentials(context, SLUG, REQUIRED_CREDENTIALS)
+
+    @staticmethod
+    def _not_implemented() -> ConnectorError:
+        # The SDK has no dedicated not-implemented code; ``internal`` is its
+        # non-retryable server-side failure and never exposes provider details.
+        return ConnectorError(ErrorCode.INTERNAL, NOT_IMPLEMENTED, retryable=False)
+
+    async def test_connection(self, context: InvocationContext) -> dict[str, bool]:
+        self._credentials(context)
+        # Never report a connection that was not actually made.
+        raise self._not_implemented()
+
+    async def invoke(
+        self, name: str, arguments: BaseModel, context: InvocationContext
+    ) -> ToolEnvelope:
+        self._credentials(context)
+        if name == "__TOOL__":
+            raise self._not_implemented()
+        raise ConnectorError(ErrorCode.NOT_FOUND, "Nástroj nebyl nalezen.")

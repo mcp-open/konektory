@@ -1,0 +1,197 @@
+schema_version: 1
+slug: comgate
+name: Comgate
+version: 1.0.0
+category: payments
+summary: Čtecí přístup ke stavu plateb, převodů a platebních metod Comgate.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: merchant
+  required: true
+  secret: true
+- key: secret
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: payments.comgate.cz
+  port: 443
+  path_prefix: /v2.0
+  methods:
+  - GET
+tools:
+- name: get_payment
+  description: Stav a detail platby Comgate podle transId (stav, částka, měna, metoda,
+    plátce).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      trans_id:
+        maxLength: 14
+        minLength: 14
+        pattern: ^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$
+        title: Trans Id
+        type: string
+    required:
+    - trans_id
+    title: TransID
+    type: object
+- name: list_transfers
+  description: Seznam bankovních převodů (výplat) Comgate uskutečněných v daný den
+    (YYYY-MM-DD).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      date:
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date
+        type: string
+      test:
+        default: false
+        title: Test
+        type: boolean
+    required:
+    - date
+    title: TransferList
+    type: object
+- name: get_transfer
+  description: 'Detail bankovního převodu Comgate podle transferId: platby a poplatky
+    v převodu.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      transfer_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Transfer Id
+        type: integer
+      test:
+        default: false
+        title: Test
+        type: boolean
+    required:
+    - transfer_id
+    title: TransferID
+    type: object
+- name: list_methods
+  description: Platební metody povolené pro e-shop v Comgate; volitelně filtr jazyk,
+    měna, země.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      lang:
+        anyOf:
+        - enum:
+          - bg
+          - cs
+          - da
+          - de
+          - el
+          - en
+          - es
+          - et
+          - fi
+          - fr
+          - hr
+          - hu
+          - it
+          - lt
+          - lv
+          - nl
+          - 'no'
+          - pl
+          - pt
+          - ro
+          - ru
+          - sl
+          - sk
+          - sv
+          - uk
+          - vi
+          type: string
+        - type: 'null'
+        default: null
+        title: Lang
+      currency:
+        anyOf:
+        - enum:
+          - CZK
+          - EUR
+          - PLN
+          - HUF
+          - USD
+          - GBP
+          - RON
+          - NOK
+          - SEK
+          type: string
+        - type: 'null'
+        default: null
+        title: Currency
+      country:
+        anyOf:
+        - enum:
+          - AT
+          - BE
+          - CY
+          - CZ
+          - DE
+          - EE
+          - EL
+          - ES
+          - FI
+          - FR
+          - GB
+          - HR
+          - HU
+          - IE
+          - IT
+          - LT
+          - LU
+          - LV
+          - MT
+          - NL
+          - 'NO'
+          - PL
+          - PT
+          - RO
+          - SL
+          - SK
+          - SE
+          - US
+          type: string
+        - type: 'null'
+        default: null
+        title: Country
+    title: MethodList
+    type: object

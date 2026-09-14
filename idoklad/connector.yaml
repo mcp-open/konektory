@@ -1,0 +1,547 @@
+schema_version: 1
+slug: idoklad
+name: iDoklad
+version: 1.0.0
+category: accounting
+summary: Čtecí přístup k vydaným a přijatým fakturám, kontaktům, bankovním výpisům
+  a úhradám iDoklad.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: client_id
+  required: true
+  secret: true
+- key: client_secret
+  required: true
+  secret: true
+- key: application_id
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  hosts:
+  - api.idoklad.cz
+  - identity.idoklad.cz
+  port: 443
+  methods:
+  - GET
+  - POST
+tools:
+- name: list_issued_invoices
+  description: Stránka vydaných faktur s filtrem (datum, partner, stav úhrady) a řazením.
+  read_only: true
+  input_schema:
+    $defs:
+      Filter:
+        additionalProperties: false
+        properties:
+          field:
+            description: Název sloupce povolený pro daný seznam (např. DateOfIssue,
+              PartnerId).
+            pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+            title: Field
+            type: string
+          operator:
+            default: eq
+            description: Operátor filtru iDoklad.
+            enum:
+            - eq
+            - '!eq'
+            - ct
+            - '!ct'
+            - lt
+            - lte
+            - gt
+            - gte
+            title: Operator
+            type: string
+          value:
+            description: Hodnota; text se posílá base64 kódovaný, čísla a data přímo.
+            maxLength: 128
+            minLength: 1
+            title: Value
+            type: string
+        required:
+        - field
+        - value
+        title: Filter
+        type: object
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1).
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      page_size:
+        default: 20
+        description: Velikost stránky (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Page Size
+        type: integer
+      filters:
+        anyOf:
+        - items:
+            $ref: '#/$defs/Filter'
+          maxItems: 8
+          type: array
+        - type: 'null'
+        default: null
+        description: Podmínky filtru spojené podle filter_type.
+        title: Filters
+      filter_type:
+        default: and
+        description: Spojení více podmínek filtru.
+        enum:
+        - and
+        - or
+        title: Filter Type
+        type: string
+      sort_by:
+        anyOf:
+        - pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení povolený pro daný seznam.
+        title: Sort By
+      sort_order:
+        default: asc
+        description: Směr řazení.
+        enum:
+        - asc
+        - desc
+        title: Sort Order
+        type: string
+    title: IssuedInvoiceList
+    type: object
+- name: get_issued_invoice
+  description: Detail vydané faktury včetně položek, cen a adres.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_id:
+        description: Id vydané faktury.
+        maximum: 9007199254740991
+        minimum: 1
+        title: Invoice Id
+        type: integer
+    required:
+    - invoice_id
+    title: IssuedInvoiceID
+    type: object
+- name: list_received_invoices
+  description: Stránka přijatých faktur s filtrem a řazením.
+  read_only: true
+  input_schema:
+    $defs:
+      Filter:
+        additionalProperties: false
+        properties:
+          field:
+            description: Název sloupce povolený pro daný seznam (např. DateOfIssue,
+              PartnerId).
+            pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+            title: Field
+            type: string
+          operator:
+            default: eq
+            description: Operátor filtru iDoklad.
+            enum:
+            - eq
+            - '!eq'
+            - ct
+            - '!ct'
+            - lt
+            - lte
+            - gt
+            - gte
+            title: Operator
+            type: string
+          value:
+            description: Hodnota; text se posílá base64 kódovaný, čísla a data přímo.
+            maxLength: 128
+            minLength: 1
+            title: Value
+            type: string
+        required:
+        - field
+        - value
+        title: Filter
+        type: object
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1).
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      page_size:
+        default: 20
+        description: Velikost stránky (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Page Size
+        type: integer
+      filters:
+        anyOf:
+        - items:
+            $ref: '#/$defs/Filter'
+          maxItems: 8
+          type: array
+        - type: 'null'
+        default: null
+        description: Podmínky filtru spojené podle filter_type.
+        title: Filters
+      filter_type:
+        default: and
+        description: Spojení více podmínek filtru.
+        enum:
+        - and
+        - or
+        title: Filter Type
+        type: string
+      sort_by:
+        anyOf:
+        - pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení povolený pro daný seznam.
+        title: Sort By
+      sort_order:
+        default: asc
+        description: Směr řazení.
+        enum:
+        - asc
+        - desc
+        title: Sort Order
+        type: string
+    title: ReceivedInvoiceList
+    type: object
+- name: list_contacts
+  description: Stránka kontaktů (adresáře) s filtrem a řazením.
+  read_only: true
+  input_schema:
+    $defs:
+      Filter:
+        additionalProperties: false
+        properties:
+          field:
+            description: Název sloupce povolený pro daný seznam (např. DateOfIssue,
+              PartnerId).
+            pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+            title: Field
+            type: string
+          operator:
+            default: eq
+            description: Operátor filtru iDoklad.
+            enum:
+            - eq
+            - '!eq'
+            - ct
+            - '!ct'
+            - lt
+            - lte
+            - gt
+            - gte
+            title: Operator
+            type: string
+          value:
+            description: Hodnota; text se posílá base64 kódovaný, čísla a data přímo.
+            maxLength: 128
+            minLength: 1
+            title: Value
+            type: string
+        required:
+        - field
+        - value
+        title: Filter
+        type: object
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1).
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      page_size:
+        default: 20
+        description: Velikost stránky (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Page Size
+        type: integer
+      filters:
+        anyOf:
+        - items:
+            $ref: '#/$defs/Filter'
+          maxItems: 8
+          type: array
+        - type: 'null'
+        default: null
+        description: Podmínky filtru spojené podle filter_type.
+        title: Filters
+      filter_type:
+        default: and
+        description: Spojení více podmínek filtru.
+        enum:
+        - and
+        - or
+        title: Filter Type
+        type: string
+      sort_by:
+        anyOf:
+        - pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení povolený pro daný seznam.
+        title: Sort By
+      sort_order:
+        default: asc
+        description: Směr řazení.
+        enum:
+        - asc
+        - desc
+        title: Sort Order
+        type: string
+    title: ContactList
+    type: object
+- name: get_contact
+  description: Detail kontaktu podle Id.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      contact_id:
+        description: Id kontaktu.
+        maximum: 9007199254740991
+        minimum: 1
+        title: Contact Id
+        type: integer
+    required:
+    - contact_id
+    title: ContactID
+    type: object
+- name: list_bank_statements
+  description: Stránka bankovních výpisů (pohybů) s filtrem účtu, data a stavu.
+  read_only: true
+  input_schema:
+    $defs:
+      Filter:
+        additionalProperties: false
+        properties:
+          field:
+            description: Název sloupce povolený pro daný seznam (např. DateOfIssue,
+              PartnerId).
+            pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+            title: Field
+            type: string
+          operator:
+            default: eq
+            description: Operátor filtru iDoklad.
+            enum:
+            - eq
+            - '!eq'
+            - ct
+            - '!ct'
+            - lt
+            - lte
+            - gt
+            - gte
+            title: Operator
+            type: string
+          value:
+            description: Hodnota; text se posílá base64 kódovaný, čísla a data přímo.
+            maxLength: 128
+            minLength: 1
+            title: Value
+            type: string
+        required:
+        - field
+        - value
+        title: Filter
+        type: object
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1).
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      page_size:
+        default: 20
+        description: Velikost stránky (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Page Size
+        type: integer
+      filters:
+        anyOf:
+        - items:
+            $ref: '#/$defs/Filter'
+          maxItems: 8
+          type: array
+        - type: 'null'
+        default: null
+        description: Podmínky filtru spojené podle filter_type.
+        title: Filters
+      filter_type:
+        default: and
+        description: Spojení více podmínek filtru.
+        enum:
+        - and
+        - or
+        title: Filter Type
+        type: string
+      sort_by:
+        anyOf:
+        - pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení povolený pro daný seznam.
+        title: Sort By
+      sort_order:
+        default: asc
+        description: Směr řazení.
+        enum:
+        - asc
+        - desc
+        title: Sort Order
+        type: string
+    title: BankStatementList
+    type: object
+- name: list_issued_payments
+  description: Stránka úhrad vydaných dokladů s filtrem faktury, partnera a data.
+  read_only: true
+  input_schema:
+    $defs:
+      Filter:
+        additionalProperties: false
+        properties:
+          field:
+            description: Název sloupce povolený pro daný seznam (např. DateOfIssue,
+              PartnerId).
+            pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+            title: Field
+            type: string
+          operator:
+            default: eq
+            description: Operátor filtru iDoklad.
+            enum:
+            - eq
+            - '!eq'
+            - ct
+            - '!ct'
+            - lt
+            - lte
+            - gt
+            - gte
+            title: Operator
+            type: string
+          value:
+            description: Hodnota; text se posílá base64 kódovaný, čísla a data přímo.
+            maxLength: 128
+            minLength: 1
+            title: Value
+            type: string
+        required:
+        - field
+        - value
+        title: Filter
+        type: object
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1).
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      page_size:
+        default: 20
+        description: Velikost stránky (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Page Size
+        type: integer
+      filters:
+        anyOf:
+        - items:
+            $ref: '#/$defs/Filter'
+          maxItems: 8
+          type: array
+        - type: 'null'
+        default: null
+        description: Podmínky filtru spojené podle filter_type.
+        title: Filters
+      filter_type:
+        default: and
+        description: Spojení více podmínek filtru.
+        enum:
+        - and
+        - or
+        title: Filter Type
+        type: string
+      sort_by:
+        anyOf:
+        - pattern: ^[A-Za-z][A-Za-z0-9]{0,63}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení povolený pro daný seznam.
+        title: Sort By
+      sort_order:
+        default: asc
+        description: Směr řazení.
+        enum:
+        - asc
+        - desc
+        title: Sort Order
+        type: string
+    title: PaymentList
+    type: object
+- name: get_current_agenda
+  description: Detail aktuálně autorizované agendy (firmy).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object

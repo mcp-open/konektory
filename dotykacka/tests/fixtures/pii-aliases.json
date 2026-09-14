@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "id": "order-safe-1",
+      "customerName": "Alice Novak",
+      "deliveryAddress": "Soukromá 12, Praha",
+      "buyer": {
+        "name": "Bob Svoboda",
+        "membershipCode": "LOYAL-123",
+        "loyaltyPoints": 900
+      },
+      "recipientDetails": {
+        "displayName": "Carol Dvořáková",
+        "providerExtension": "recipient-private-value"
+      },
+      "shippingAddress": {
+        "line1": "Tajná 42",
+        "buildingUnit": 7
+      },
+      "newProviderField": "Alice Smith",
+      "newNumericField": 420123456,
+      "customerCount": 17,
+      "totalValueRounded": 1234.5,
+      "orderItems": [
+        {
+          "name": "Espresso",
+          "quantity": 2,
+          "totalPriceWithVat": 120,
+          "vat": 21
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,442 @@
+schema_version: 1
+slug: collabim
+name: Collabim
+version: 1.0.0
+category: seo
+summary: Čtecí přístup k projektům, klíčovým slovům, pozicím a podílu na trhu Collabim.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.oncollabim.com
+  port: 443
+  methods:
+  - GET
+tools:
+- name: list_projects
+  description: Stránka projektů s filtrem názvu a aktivity.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      items_per_page:
+        default: 20
+        description: Počet záznamů na stránku
+        maximum: 100
+        minimum: 1
+        title: Items Per Page
+        type: integer
+      name_like:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Část názvu projektu (nameLike)
+        title: Name Like
+      active:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Jen aktivní (true) nebo archivované (false) projekty
+        title: Active
+    title: ProjectList
+    type: object
+- name: get_project
+  description: Detail projektu (název, web, štítky).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      project_id:
+        description: ID projektu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+    required:
+    - project_id
+    title: ProjectID
+    type: object
+- name: list_keywords
+  description: Stránka klíčových slov projektu s aktuálními pozicemi.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      items_per_page:
+        default: 20
+        description: Počet záznamů na stránku
+        maximum: 100
+        minimum: 1
+        title: Items Per Page
+        type: integer
+      project_id:
+        description: ID projektu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+      keyword_like:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Část textu klíčového slova (keywordLike)
+        title: Keyword Like
+      tags:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Štítek klíčových slov (tags)
+        title: Tags
+      starred:
+        anyOf:
+        - type: boolean
+        - type: 'null'
+        default: null
+        description: Jen s hvězdičkou (true) / bez (false)
+        title: Starred
+    required:
+    - project_id
+    title: KeywordList
+    type: object
+- name: keyword_positions
+  description: Historie pozic vybraných klíčových slov (podle ID nebo štítku) v ohraničeném
+    intervalu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      project_id:
+        description: ID projektu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+      date_from:
+        description: Začátek intervalu (YYYY-MM-DD)
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec intervalu (YYYY-MM-DD), nejvýše rok po začátku
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+      project_keyword_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 200
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: ID klíčových slov projektu (projectKeywordIds)
+        title: Project Keyword Ids
+      tags:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Štítek klíčových slov (tags)
+        title: Tags
+      get_x_days:
+        anyOf:
+        - maximum: 366
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit jen posledních X dnů intervalu (getXDays)
+        title: Get X Days
+    required:
+    - project_id
+    - date_from
+    - date_to
+    title: KeywordPositions
+    type: object
+- name: aggregated_positions
+  description: Agregované pozice všech klíčových slov projektu v ohraničeném intervalu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      project_id:
+        description: ID projektu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+      date_from:
+        description: Začátek intervalu (YYYY-MM-DD)
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec intervalu (YYYY-MM-DD), nejvýše rok po začátku
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+      tags:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Štítek klíčových slov (tags)
+        title: Tags
+      get_x_days:
+        anyOf:
+        - maximum: 366
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit jen posledních X dnů intervalu (getXDays)
+        title: Get X Days
+    required:
+    - project_id
+    - date_from
+    - date_to
+    title: AggregatedPositions
+    type: object
+- name: position_distribution
+  description: Rozložení pozic (TOP3, 4–10, 11–20, 21+) projektu v ohraničeném intervalu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      project_id:
+        description: ID projektu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+      date_from:
+        description: Začátek intervalu (YYYY-MM-DD)
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec intervalu (YYYY-MM-DD), nejvýše rok po začátku
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+      tag_name:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen pro daný štítek (tagName)
+        title: Tag Name
+      get_x_days:
+        anyOf:
+        - maximum: 366
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit jen posledních X dnů intervalu (getXDays)
+        title: Get X Days
+    required:
+    - project_id
+    - date_from
+    - date_to
+    title: PositionDistribution
+    type: object
+- name: market_share
+  description: Podíl na trhu (konkurenční domény) pro projekt a vyhledávač v ohraničeném
+    intervalu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      project_id:
+        description: ID projektu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Project Id
+        type: integer
+      date_from:
+        description: Začátek intervalu (YYYY-MM-DD)
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec intervalu (YYYY-MM-DD), nejvýše rok po začátku
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+      search_engine_id:
+        description: ID vyhledávače (searchEngineId)
+        maximum: 9007199254740991
+        minimum: 1
+        title: Search Engine Id
+        type: integer
+      tag_name:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen pro daný štítek (tagName)
+        title: Tag Name
+      get_x_days:
+        anyOf:
+        - maximum: 366
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Vrátit jen posledních X dnů intervalu (getXDays)
+        title: Get X Days
+    required:
+    - project_id
+    - date_from
+    - date_to
+    - search_engine_id
+    title: MarketShare
+    type: object
+- name: list_activities
+  description: Stránka aktivit (linkbuilding) s filtrem projektu a data.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      items_per_page:
+        default: 20
+        description: Počet záznamů na stránku
+        maximum: 100
+        minimum: 1
+        title: Items Per Page
+        type: integer
+      project_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID projektu
+        title: Project Id
+      added_on_from:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vytvořeno od (YYYY-MM-DD)
+        title: Added On From
+      added_on_to:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vytvořeno do (YYYY-MM-DD)
+        title: Added On To
+      type_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID typu aktivity (typeId)
+        title: Type Id
+      state_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID stavu aktivity (stateId)
+        title: State Id
+    title: ActivityList
+    type: object

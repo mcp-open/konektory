@@ -1,0 +1,263 @@
+schema_version: 1
+slug: supportbox
+name: SupportBox
+version: 1.0.0
+category: customer_support
+summary: Čtecí přístup k e-mailovým tiketům, zprávám, schránkám, štítkům a uživatelům
+  SupportBox.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: app.supportbox.cz
+  port: 443
+  path_prefix: /api/rest/v2
+  methods:
+  - GET
+tools:
+- name: list_mail_tickets
+  description: Stránka e-mailových tiketů s filtrem stavu, schránky, uživatele, štítku
+    a data.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 25
+        description: Počet záznamů na stránku
+        maximum: 50
+        minimum: 1
+        title: Per Page
+        type: integer
+      status:
+        anyOf:
+        - enum:
+          - new
+          - pending
+          - resolved
+          - spam
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav tiketu
+        title: Status
+      mailbox_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID schránky
+        title: Mailbox Id
+      assigned_user_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID přiřazeného uživatele
+        title: Assigned User Id
+      unassigned:
+        default: false
+        description: Jen tikety bez přiřazeného uživatele
+        title: Unassigned
+        type: boolean
+      tag_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID štítku
+        title: Tag Id
+      created_from:
+        anyOf:
+        - maxLength: 19
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vytvořeno od (ISO 8601)
+        title: Created From
+      created_to:
+        anyOf:
+        - maxLength: 19
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vytvořeno do (ISO 8601)
+        title: Created To
+      last_message_from:
+        anyOf:
+        - maxLength: 19
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$
+          type: string
+        - type: 'null'
+        default: null
+        description: Poslední zpráva od (ISO 8601)
+        title: Last Message From
+      last_message_to:
+        anyOf:
+        - maxLength: 19
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$
+          type: string
+        - type: 'null'
+        default: null
+        description: Poslední zpráva do (ISO 8601)
+        title: Last Message To
+    title: MailTicketList
+    type: object
+- name: get_mail_ticket
+  description: Detail (hlavička) e-mailového tiketu podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ticket_id:
+        description: ID e-mailového tiketu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Ticket Id
+        type: integer
+    required:
+    - ticket_id
+    title: MailTicketID
+    type: object
+- name: list_mail_ticket_messages
+  description: Stránka zpráv jednoho e-mailového tiketu (obsah konverzace).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 25
+        description: Počet záznamů na stránku
+        maximum: 50
+        minimum: 1
+        title: Per Page
+        type: integer
+      ticket_id:
+        description: ID e-mailového tiketu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Ticket Id
+        type: integer
+    required:
+    - ticket_id
+    title: MailTicketMessages
+    type: object
+- name: list_mailboxes
+  description: Stránka e-mailových schránek dostupných API klíči.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 25
+        description: Počet záznamů na stránku
+        maximum: 50
+        minimum: 1
+        title: Per Page
+        type: integer
+    title: MailboxList
+    type: object
+- name: list_users
+  description: Stránka uživatelů (agentů) účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 25
+        description: Počet záznamů na stránku
+        maximum: 50
+        minimum: 1
+        title: Per Page
+        type: integer
+    title: UserList
+    type: object
+- name: list_tags
+  description: Stránka štítků.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        description: Číslo stránky (od 1)
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 25
+        description: Počet záznamů na stránku
+        maximum: 50
+        minimum: 1
+        title: Per Page
+        type: integer
+    title: TagList
+    type: object

@@ -1,0 +1,389 @@
+schema_version: 1
+slug: daktela
+name: Daktela
+version: 1.0.0
+category: customer_support
+summary: Čtecí přístup k tiketům, aktivitám, kontaktům, frontám a uživatelům Daktela
+  V6.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: instance_url
+  required: true
+  secret: true
+- key: access_token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host_pattern: '{tenant}.daktela.com'
+  port: 443
+  path_prefix: /api/v6
+  methods:
+  - GET
+tools:
+- name: list_tickets
+  description: Stránka tiketů s filtrem fáze, priority, kategorie, uživatele, kontaktu,
+    názvu a data.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      take:
+        default: 20
+        description: Počet záznamů (take)
+        maximum: 100
+        minimum: 1
+        title: Take
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů (skip)
+        maximum: 10000
+        minimum: 0
+        title: Skip
+        type: integer
+      stage:
+        anyOf:
+        - enum:
+          - OPEN
+          - WAIT
+          - CLOSE
+          - ARCHIVE
+          type: string
+        - type: 'null'
+        default: null
+        description: Fáze tiketu
+        title: Stage
+      priority:
+        anyOf:
+        - enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+          type: string
+        - type: 'null'
+        default: null
+        description: Priorita tiketu
+        title: Priority
+      category:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno kategorie
+        title: Category
+      user:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno přiřazeného uživatele
+        title: User
+      contact:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno kontaktu
+        title: Contact
+      title_contains:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Část názvu tiketu
+        title: Title Contains
+      created_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vytvořeno od (YYYY-MM-DD)
+        title: Created From
+      created_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vytvořeno do (YYYY-MM-DD)
+        title: Created To
+      sort:
+        default: desc
+        description: Řazení podle data vytvoření
+        enum:
+        - asc
+        - desc
+        title: Sort
+        type: string
+    title: TicketList
+    type: object
+- name: get_ticket
+  description: Detail tiketu podle jeho unikátního jména (čísla).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      name:
+        description: Unikátní jméno (číslo) tiketu
+        maxLength: 64
+        minLength: 1
+        pattern: ^[A-Za-z0-9_]{1,64}$
+        title: Name
+        type: string
+    required:
+    - name
+    title: TicketName
+    type: object
+- name: list_activities
+  description: Stránka aktivit (hovory, e-maily, chaty) s filtrem tiketu, typu, stavu,
+    fronty a agenta.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      take:
+        default: 20
+        description: Počet záznamů (take)
+        maximum: 100
+        minimum: 1
+        title: Take
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů (skip)
+        maximum: 10000
+        minimum: 0
+        title: Skip
+        type: integer
+      ticket:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno tiketu
+        title: Ticket
+      type:
+        anyOf:
+        - enum:
+          - CALL
+          - EMAIL
+          - CHAT
+          - SMS
+          - FBM
+          - IGDM
+          - WAP
+          - VBR
+          - CUSTOM
+          - COMMENT
+          type: string
+        - type: 'null'
+        default: null
+        description: Typ aktivity
+        title: Type
+      action:
+        anyOf:
+        - enum:
+          - WAIT
+          - OPEN
+          - POSTPONE
+          - CLOSE
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav aktivity
+        title: Action
+      queue:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno fronty
+        title: Queue
+      user:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno uživatele
+        title: User
+      sort:
+        default: desc
+        description: Řazení podle času
+        enum:
+        - asc
+        - desc
+        title: Sort
+        type: string
+    title: ActivityList
+    type: object
+- name: list_contacts
+  description: Stránka kontaktů s filtrem příjmení a účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      take:
+        default: 20
+        description: Počet záznamů (take)
+        maximum: 100
+        minimum: 1
+        title: Take
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů (skip)
+        maximum: 10000
+        minimum: 0
+        title: Skip
+        type: integer
+      lastname_contains:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Část příjmení
+        title: Lastname Contains
+      account:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          pattern: ^[A-Za-z0-9_]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Unikátní jméno účtu (firmy)
+        title: Account
+    title: ContactList
+    type: object
+- name: get_contact
+  description: Detail kontaktu podle jeho unikátního jména.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      name:
+        description: Unikátní jméno kontaktu
+        maxLength: 64
+        minLength: 1
+        pattern: ^[A-Za-z0-9_]{1,64}$
+        title: Name
+        type: string
+    required:
+    - name
+    title: ContactName
+    type: object
+- name: list_queues
+  description: Stránka front (queues) s volitelným filtrem typu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      take:
+        default: 20
+        description: Počet záznamů (take)
+        maximum: 100
+        minimum: 1
+        title: Take
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů (skip)
+        maximum: 10000
+        minimum: 0
+        title: Skip
+        type: integer
+      type:
+        anyOf:
+        - enum:
+          - in
+          - out
+          - ctc
+          - outbounder
+          - progressive
+          - dialer
+          - email
+          - sms
+          - chat
+          - fbm
+          - igdm
+          - socialmedia
+          - wap
+          - vbr
+          - custom
+          type: string
+        - type: 'null'
+        default: null
+        description: Typ fronty
+        title: Type
+    title: QueueList
+    type: object
+- name: list_users
+  description: Stránka uživatelů (agentů) instance.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      take:
+        default: 20
+        description: Počet záznamů (take)
+        maximum: 100
+        minimum: 1
+        title: Take
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů (skip)
+        maximum: 10000
+        minimum: 0
+        title: Skip
+        type: integer
+    title: UserList
+    type: object

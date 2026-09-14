@@ -1,0 +1,48 @@
+schema_version: 1
+slug: "__SLUG__"
+name: "__NAME__"
+version: __VERSION__
+category: uncategorized
+summary: "Nedokončený scaffold konektoru __NAME__; provider zatím není napojen."
+auth:
+  # TODO: potvrdit typ autentizace providera; scaffold ho neodhaduje.
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+# TODO: doplnit přesné klíče provisionované platformou (stejné jako REQUIRED_CREDENTIALS).
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  # TODO: pevný host/port/path_prefix providera doplní přejímka; bez nich nelze aktivovat.
+  methods:
+  - GET
+tools:
+- name: __TOOL__
+  description: "__TOOL_DESCRIPTION__"
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object

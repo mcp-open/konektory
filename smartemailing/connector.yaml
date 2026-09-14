@@ -1,0 +1,409 @@
+schema_version: 1
+slug: smartemailing
+name: SmartEmailing
+version: 1.0.0
+category: email_marketing
+summary: Čtecí přístup ke kontaktům, seznamům, e-mailům a statistikám SmartEmailing.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: username
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: app.smartemailing.cz
+  port: 443
+  path_prefix: /api/v3
+  methods:
+  - GET
+tools:
+- name: list_contacts
+  description: Stránka kontaktů s výběrem polí, řazením a filtry.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (max. 500)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Přeskočené záznamy
+        maximum: 1000000
+        minimum: 0
+        title: Offset
+        type: integer
+      select:
+        anyOf:
+        - maxLength: 1949
+          pattern: ^[a-z][a-z0-9_]{0,63}(,[a-z][a-z0-9_]{0,63})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vybraná pole oddělená čárkou
+        title: Select
+      sort:
+        anyOf:
+        - pattern: ^-?[a-z][a-z0-9_]{0,63}(,-?[a-z][a-z0-9_]{0,63}){0,9}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Řazení, `-` před polem = sestupně
+        title: Sort
+      expand:
+        anyOf:
+        - const: customfields
+          type: string
+        - type: 'null'
+        default: null
+        description: Rozbalit vnořené zdroje
+        title: Expand
+      emailaddress:
+        anyOf:
+        - pattern: ^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}$
+          type: string
+        - type: 'null'
+        default: null
+        description: E-mail
+        title: Emailaddress
+      name:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr jména
+        title: Name
+      surname:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr příjmení
+        title: Surname
+      company:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr firmy
+        title: Company
+      country:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr země
+        title: Country
+      town:
+        anyOf:
+        - pattern: ^[^\x00-\x1f\x7f]{1,128}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Filtr města
+        title: Town
+      language:
+        anyOf:
+        - pattern: ^[a-z]{2}_[A-Z]{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jazyk (POSIX, např. cs_CZ)
+        title: Language
+      blacklisted:
+        anyOf:
+        - enum:
+          - 0
+          - 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Stav blacklistu 0/1
+        title: Blacklisted
+    title: ContactList
+    type: object
+- name: get_contact
+  description: Detail kontaktu podle ID nebo e-mailu včetně seznamů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      contact:
+        description: ID kontaktu nebo e-mailová adresa
+        pattern: ^(?:[0-9]{1,18}|[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190})$
+        title: Contact
+        type: string
+      select:
+        anyOf:
+        - maxLength: 1949
+          pattern: ^[a-z][a-z0-9_]{0,63}(,[a-z][a-z0-9_]{0,63})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vybraná pole oddělená čárkou
+        title: Select
+      expand:
+        anyOf:
+        - const: customfields
+          type: string
+        - type: 'null'
+        default: null
+        description: Rozbalit vnořené zdroje
+        title: Expand
+    required:
+    - contact
+    title: ContactDetail
+    type: object
+- name: list_contactlists
+  description: Stránka seznamů kontaktů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (max. 500)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Přeskočené záznamy
+        maximum: 1000000
+        minimum: 0
+        title: Offset
+        type: integer
+      select:
+        anyOf:
+        - maxLength: 1949
+          pattern: ^[a-z][a-z0-9_]{0,63}(,[a-z][a-z0-9_]{0,63})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vybraná pole oddělená čárkou
+        title: Select
+      sort:
+        anyOf:
+        - pattern: ^-?[a-z][a-z0-9_]{0,63}(,-?[a-z][a-z0-9_]{0,63}){0,9}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Řazení, `-` před polem = sestupně
+        title: Sort
+    title: ContactlistList
+    type: object
+- name: get_contactlist
+  description: Detail seznamu kontaktů včetně souhrnných metrik.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      contactlist_id:
+        description: ID seznamu kontaktů
+        maximum: 9007199254740991
+        minimum: 1
+        title: Contactlist Id
+        type: integer
+      select:
+        anyOf:
+        - maxLength: 1949
+          pattern: ^[a-z][a-z0-9_]{0,63}(,[a-z][a-z0-9_]{0,63})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vybraná pole oddělená čárkou
+        title: Select
+    required:
+    - contactlist_id
+    title: ContactlistID
+    type: object
+- name: list_emails
+  description: Stránka e-mailů (šablon) bez těla, max. 10 na stránku.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 10
+        description: Počet záznamů (max. 10)
+        maximum: 10
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Přeskočené záznamy
+        maximum: 1000000
+        minimum: 0
+        title: Offset
+        type: integer
+      select:
+        default: id,name,title,created
+        description: 'Vybraná pole: id, name, title, htmlbody, textbody, created'
+        pattern: ^(id|name|title|htmlbody|textbody|created)(,(id|name|title|htmlbody|textbody|created)){0,5}$
+        title: Select
+        type: string
+      sort:
+        anyOf:
+        - pattern: ^-?(id|name|title)(,-?(id|name|title)){0,2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Řazení podle id, name, title; `-` = sestupně
+        title: Sort
+    title: EmailList
+    type: object
+- name: list_newsletters
+  description: Stránka odeslaných newsletterů s filtrem podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (max. 500)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Přeskočené záznamy
+        maximum: 1000000
+        minimum: 0
+        title: Offset
+        type: integer
+      newsletter_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Filtr podle ID newsletteru
+        title: Newsletter Id
+      email_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Filtr podle ID e-mailu (šablony)
+        title: Email Id
+    title: NewsletterList
+    type: object
+- name: newsletter_stats
+  description: Souhrnné statistiky newsletterů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (max. 500)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Přeskočené záznamy
+        maximum: 1000000
+        minimum: 0
+        title: Offset
+        type: integer
+      select:
+        anyOf:
+        - maxLength: 1949
+          pattern: ^[a-z][a-z0-9_]{0,63}(,[a-z][a-z0-9_]{0,63})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vybraná pole oddělená čárkou
+        title: Select
+    title: NewsletterStats
+    type: object
+- name: list_customfields
+  description: Stránka definic vlastních polí kontaktů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (max. 500)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Přeskočené záznamy
+        maximum: 1000000
+        minimum: 0
+        title: Offset
+        type: integer
+      select:
+        anyOf:
+        - maxLength: 1949
+          pattern: ^[a-z][a-z0-9_]{0,63}(,[a-z][a-z0-9_]{0,63})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vybraná pole oddělená čárkou
+        title: Select
+      sort:
+        anyOf:
+        - pattern: ^-?[a-z][a-z0-9_]{0,63}(,-?[a-z][a-z0-9_]{0,63}){0,9}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Řazení, `-` před polem = sestupně
+        title: Sort
+      expand:
+        anyOf:
+        - const: customfield_options
+          type: string
+        - type: 'null'
+        default: null
+        description: Rozbalit možnosti výběrových polí
+        title: Expand
+    title: CustomfieldList
+    type: object

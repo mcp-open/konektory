@@ -1,0 +1,384 @@
+schema_version: 1
+slug: vyfakturuj
+name: Vyfakturuj.cz
+version: 1.0.0
+category: accounting
+summary: Čtecí přístup k dokladům, kontaktům a nastavení Vyfakturuj.cz.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: email
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.vyfakturuj.cz
+  port: 443
+  path_prefix: /2.0
+  methods:
+  - GET
+tools:
+- name: list_invoices
+  description: Stránka dokladů s filtrem typu, zákazníka, dat a řazením.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      rows_limit:
+        default: 20
+        description: Počet záznamů na stránku
+        maximum: 100
+        minimum: 1
+        title: Rows Limit
+        type: integer
+      rows_offset:
+        default: 0
+        description: Počet přeskočených záznamů
+        maximum: 10000
+        minimum: 0
+        title: Rows Offset
+        type: integer
+      type:
+        anyOf:
+        - enum:
+          - 1
+          - 2
+          - 4
+          - 8
+          - 16
+          - 32
+          - 64
+          - 128
+          - 512
+          type: integer
+        - type: 'null'
+        default: null
+        description: 'Typ dokladu: 1 faktura, 2 zálohová, 4 proforma, 8 výzva k platbě,
+          16 daňový doklad, 32 opravný daňový doklad, 64 příjmový doklad, 128 opravný
+          doklad, 512 objednávka'
+        title: Type
+      flags:
+        anyOf:
+        - maximum: 131071
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Bitová maska příznaků (2 uhrazeno, 8 storno, 64 nedoplatek, …)
+        title: Flags
+      id_customer:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID kontaktu v adresáři
+        title: Id Customer
+      id_number_series:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID číselné řady
+        title: Id Number Series
+      id_tag:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID štítku
+        title: Id Tag
+      id_parent:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: ID nadřazeného dokladu
+        title: Id Parent
+      number:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu
+        title: Number
+      variable_symbol:
+        anyOf:
+        - pattern: ^[0-9]{1,10}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Variabilní symbol
+        title: Variable Symbol
+      currency:
+        anyOf:
+        - pattern: ^[A-Z]{3}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Měna (ISO 4217)
+        title: Currency
+      date_created_from:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vytvoření od (YYYY-MM-DD)
+        title: Date Created From
+      date_created_to:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vytvoření do (YYYY-MM-DD)
+        title: Date Created To
+      date_due:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum splatnosti (YYYY-MM-DD)
+        title: Date Due
+      date_paid:
+        anyOf:
+        - maxLength: 10
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum úhrady (YYYY-MM-DD)
+        title: Date Paid
+      q:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Fulltextové hledání
+        title: Q
+      sort_by:
+        anyOf:
+        - enum:
+          - id
+          - number
+          - date_created
+          - date_due
+          - date_paid
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení
+        title: Sort By
+      sort_dir:
+        default: desc
+        description: Směr řazení
+        enum:
+        - asc
+        - desc
+        title: Sort Dir
+        type: string
+    title: InvoiceList
+    type: object
+- name: get_invoice
+  description: Detail dokladu podle ID včetně položek.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_id:
+        description: ID faktury
+        maximum: 9007199254740991
+        minimum: 1
+        title: Invoice Id
+        type: integer
+    required:
+    - invoice_id
+    title: InvoiceID
+    type: object
+- name: list_contacts
+  description: Stránka kontaktů adresáře s filtrem IČO, DIČ, názvu a e-mailu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      rows_limit:
+        default: 20
+        description: Počet záznamů na stránku
+        maximum: 100
+        minimum: 1
+        title: Rows Limit
+        type: integer
+      rows_offset:
+        default: 0
+        description: Počet přeskočených záznamů
+        maximum: 10000
+        minimum: 0
+        title: Rows Offset
+        type: integer
+      ic:
+        anyOf:
+        - pattern: ^[0-9]{6,10}$
+          type: string
+        - type: 'null'
+        default: null
+        description: IČO
+        title: Ic
+      dic:
+        anyOf:
+        - pattern: ^[A-Z]{2}[0-9A-Z]{2,13}$
+          type: string
+        - type: 'null'
+        default: null
+        description: DIČ
+        title: Dic
+      name:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Název v adresáři
+        title: Name
+      mail_to:
+        anyOf:
+        - maxLength: 128
+          minLength: 3
+          pattern: ^[^\s@]+@[^\s@]+$
+          type: string
+        - type: 'null'
+        default: null
+        description: E-mail pro faktury
+        title: Mail To
+      q:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Fulltextové hledání
+        title: Q
+      sort_by:
+        anyOf:
+        - enum:
+          - id
+          - name
+          - IC
+          type: string
+        - type: 'null'
+        default: null
+        description: Sloupec řazení
+        title: Sort By
+      sort_dir:
+        default: asc
+        description: Směr řazení
+        enum:
+        - asc
+        - desc
+        title: Sort Dir
+        type: string
+    title: ContactList
+    type: object
+- name: get_contact
+  description: Detail kontaktu adresáře podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      contact_id:
+        description: ID kontaktu
+        maximum: 9007199254740991
+        minimum: 1
+        title: Contact Id
+        type: integer
+    required:
+    - contact_id
+    title: ContactID
+    type: object
+- name: get_template
+  description: Detail šablony nebo pravidelné faktury podle ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      template_id:
+        description: ID šablony / pravidelné faktury
+        maximum: 9007199254740991
+        minimum: 1
+        title: Template Id
+        type: integer
+    required:
+    - template_id
+    title: TemplateID
+    type: object
+- name: list_payment_methods
+  description: Seznam platebních metod účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_number_series
+  description: Seznam číselných řad účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_tags
+  description: Seznam štítků účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object

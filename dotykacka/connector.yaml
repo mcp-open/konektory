@@ -1,0 +1,64 @@
+schema_version: 1
+slug: dotykacka
+name: Dotykačka
+version: 1.0.0
+category: pos
+summary: Čtecí přístup k provozovně Dotykačka a bezpečným prodejním souhrnům.
+auth:
+  type: oauth_delegated
+  provider: dotykacka
+  credential_delivery: core_signed_body_exact_version
+credentials: []
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: memory_single_replica
+egress:
+  host: api.dotykacka.cz
+  port: 443
+  path_prefix: /v2
+  methods: [GET, POST]
+tools:
+  - name: get_cloud_info
+    description: Základní informace o připojeném cloudu/provozovně.
+    read_only: true
+    input_schema:
+      type: object
+      additionalProperties: false
+  - name: list_orders
+    description: Stránka účtenek a objednávek s volitelným filtrem podle data.
+    read_only: true
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        date_from: {type: [string, 'null'], format: date, default: null}
+        date_to: {type: [string, 'null'], format: date, default: null}
+        include_items: {type: boolean, default: false}
+        limit: {type: integer, default: 50, description: Hodnoty nad 100 runtime ořízne.}
+        page: {type: integer, default: 1, minimum: 1}
+  - name: sales_summary
+    description: Tržby, počty dokladů, průměr, medián, top produkty a DPH.
+    read_only: true
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        date_from: {type: [string, 'null'], format: date, default: null}
+        date_to: {type: [string, 'null'], format: date, default: null}

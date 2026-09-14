@@ -1,0 +1,30 @@
+# __NAME__ — scaffold read-only konektoru
+
+Vygenerováno příkazem `scripts/new_connector.py`. Balíček je záměrně
+nedokončený: ukázkový nástroj `__TOOL__` i safe-test vrací bezpečnou chybu
+SDK (`ConnectorError`, kód `internal`), dokud není napojen skutečný provider.
+Nevolá žádné síťové API, neodhaduje endpoint ani credentials a nepředstírá
+úspěšné připojení. Samotný adresář nic neregistruje, neaktivuje ani nenasazuje.
+
+## Obsah scaffoldu
+
+- `src/__MODULE__/app.py`: `build_definition()` a `create_runtime_app()` nad SDK `create_app`.
+- `src/__MODULE__/service.py`: `__CLASS__` s vazbou credentials na instalaci; provider klient chybí.
+- `src/__MODULE__/schemas.py`: striktní `Input`/`Page` modely s uzavřenými argumenty.
+- `connector.yaml`: manifest ve tvaru existujících konektorů, bez odhadnutého egress hostu.
+- `tests/`: drift manifestu, odmítnutí špatných credentials/argumentů a podepsaná HTTP hranice.
+- `Dockerfile` a `pyproject.toml` s verzemi připnutými podle `sdk/`.
+
+## Dokončení
+
+1. `python scripts/connector_inventory.py register __SLUG__` (registr vlastní inventory skript).
+2. Doplňte pevný HTTPS origin providera a `egress` v manifestu. Klient používejte
+   výhradně přes SDK `UpstreamClient` s pevnou cestou; žádná URL z tool arguments.
+3. Doplňte `REQUIRED_CREDENTIALS` v `service.py` a stejné klíče do manifestu.
+   `pii_key` je povinný vždy; provider výstup obalujte `private_envelope`.
+4. Nahraďte ukázkový nástroj skutečnými read-only nástroji. Každé jméno musí být
+   ve `SPECS`, v manifestu i v testech; write nástroje nejsou povolené.
+5. Ověřte `make test-connector CONNECTOR=__SLUG__`, poté `make test` a `make build`.
+
+Port `__PORT__` je jen vývojová hodnota pro samostatný běh runtime.
+Postup je v `docs/adding-connectors.md`.

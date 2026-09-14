@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools==__SETUPTOOLS_VERSION__"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openmcp-connector-__SLUG__"
+version = "__VERSION__"
+description = "OpenMCP read-only __SLUG__ connector runtime (scaffold, provider not wired)"
+requires-python = ">=3.12"
+dependencies = [
+  "openmcp-connector-runtime==__SDK_VERSION__",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest==__PYTEST_VERSION__",
+  "PyYAML==__PYYAML_VERSION__",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["__MODULE__"]

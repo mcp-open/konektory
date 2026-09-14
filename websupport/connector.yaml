@@ -1,0 +1,209 @@
+schema_version: 1
+slug: websupport
+name: Websupport
+version: 1.0.0
+category: hosting
+summary: Čtecí přístup ke službám, DNS zónám a FTP účtům Websupport.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: api_secret
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: rest.websupport.sk
+  port: 443
+  path_prefixes:
+  - /v1/user/self
+  - /v2
+  methods:
+  - GET
+tools:
+- name: list_services
+  description: Stránkovaný seznam služeb účtu (domény, hostingy) včetně ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      pagesize:
+        default: 50
+        maximum: 200
+        minimum: 1
+        title: Pagesize
+        type: integer
+    title: PageV1
+    type: object
+- name: get_service
+  description: Detail služby podle ID (název, stav, expirace).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      service_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Service Id
+        type: integer
+    required:
+    - service_id
+    title: ServiceID
+    type: object
+- name: list_zones
+  description: Stránkovaný seznam DNS zón účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      pagesize:
+        default: 50
+        maximum: 200
+        minimum: 1
+        title: Pagesize
+        type: integer
+    title: PageV1
+    type: object
+- name: get_dns_zone
+  description: Detail DNS zóny služby (název, DNSSEC, poslední kontrola).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      service_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Service Id
+        type: integer
+    required:
+    - service_id
+    title: ServiceID
+    type: object
+- name: list_dns_records
+  description: Stránkovaný seznam DNS záznamů služby s filtrem.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      service_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Service Id
+        type: integer
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      rows_per_page:
+        default: 50
+        maximum: 200
+        minimum: 1
+        title: Rows Per Page
+        type: integer
+      name:
+        anyOf:
+        - maxLength: 253
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        title: Name
+      content:
+        anyOf:
+        - maxLength: 253
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        title: Content
+    required:
+    - service_id
+    title: DnsRecordList
+    type: object
+- name: list_ftp_accounts
+  description: Stránkovaný seznam FTP účtů hostingu bez hesel.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      service_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Service Id
+        type: integer
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      rows_per_page:
+        default: 50
+        maximum: 200
+        minimum: 1
+        title: Rows Per Page
+        type: integer
+    required:
+    - service_id
+    title: ServicePage
+    type: object
+- name: get_ftp_account
+  description: Detail FTP účtu hostingu bez hesla.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      service_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Service Id
+        type: integer
+      ftp_account_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Ftp Account Id
+        type: integer
+    required:
+    - service_id
+    - ftp_account_id
+    title: FtpAccountID
+    type: object

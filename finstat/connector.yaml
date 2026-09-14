@@ -1,0 +1,174 @@
+schema_version: 1
+slug: finstat
+name: FinStat
+version: 1.0.0
+category: company_register
+summary: Čtecí přístup k údajům o slovenských firmách a účetním závěrkám FinStat.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: private_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: www.finstat.sk
+  port: 443
+  path_prefix: /api
+  methods:
+  - POST
+tools:
+- name: get_basic
+  description: Základní údaje slovenské firmy podle IČO (registr, adresa, DIČ).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ico:
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9]{8}$
+        title: Ico
+        type: string
+    required:
+    - ico
+    title: Company
+    type: object
+- name: get_detail
+  description: Detail firmy podle IČO včetně rizikových indikátorů (PREMIUM).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ico:
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9]{8}$
+        title: Ico
+        type: string
+    required:
+    - ico
+    title: Company
+    type: object
+- name: get_extended
+  description: Rozšířený detail firmy s finančními ukazateli (ELITE).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ico:
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9]{8}$
+        title: Ico
+        type: string
+    required:
+    - ico
+    title: Company
+    type: object
+- name: get_ultimate
+  description: Kompletní profil firmy včetně osob a dceřiných firem (ULTIMATE).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ico:
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9]{8}$
+        title: Ico
+        type: string
+    required:
+    - ico
+    title: Company
+    type: object
+- name: autocomplete
+  description: Našeptávač firem podle názvu nebo části IČO.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      query:
+        maxLength: 100
+        minLength: 2
+        title: Query
+        type: string
+    required:
+    - query
+    title: Autocomplete
+    type: object
+- name: list_statements
+  description: Seznam dostupných účetních závěrek firmy podle IČO.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ico:
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9]{8}$
+        title: Ico
+        type: string
+    required:
+    - ico
+    title: Company
+    type: object
+- name: get_statement
+  description: Detail účetní závěrky firmy za daný rok a šablonu výkazu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      ico:
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9]{8}$
+        title: Ico
+        type: string
+      year:
+        maximum: 2100
+        minimum: 1993
+        title: Year
+        type: integer
+      template:
+        enum:
+        - Template2011v2
+        - Template2014
+        - Template2014micro
+        - TemplateFinancial
+        - TemplateROPO
+        - TemplateNujPU
+        title: Template
+        type: string
+    required:
+    - ico
+    - year
+    - template
+    title: Statement
+    type: object

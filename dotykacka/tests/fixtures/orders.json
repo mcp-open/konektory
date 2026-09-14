@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "documentType": "RECEIPT",
+      "totalValueRounded": 100,
+      "currency": "CZK",
+      "customer": {"name": "Jan Novák", "email": "jan@example.test", "phone": "+420 777 111 222"},
+      "orderItems": [
+        {"name": "Espresso", "quantity": 2, "totalPriceWithVat": 80, "vat": 21},
+        {"name": "Voda", "quantity": 1, "totalPriceWithVat": 20, "vat": 12}
+      ]
+    },
+    {
+      "id": 2,
+      "documentType": "RECEIPT",
+      "totalValueRounded": 50,
+      "orderItems": []
+    },
+    {
+      "id": 3,
+      "documentType": "RECEIPT",
+      "totalValueRounded": 999,
+      "canceledDate": "2026-01-05",
+      "orderItems": [{"name": "Stornovaný produkt", "quantity": 1, "totalPriceWithVat": 999, "vat": 21}]
+    }
+  ]
+}
+

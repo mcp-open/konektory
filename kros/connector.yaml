@@ -1,0 +1,554 @@
+schema_version: 1
+slug: kros
+name: KROS Fakturácia
+version: 1.0.0
+category: accounting
+summary: Čtecí přístup k faktúram, zálohovým faktúram, výdavkom, katalógu a platbám
+  KROS Fakturácia (KROS OpenAPI).
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_token
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api-economy.kros.sk
+  port: 443
+  path_prefix: /api
+  methods:
+  - GET
+tools:
+- name: list_invoices
+  description: Seznam faktur s filtrem data vystavení/dodání, stavu úhrady a čísla
+    dokladu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      top:
+        default: 50
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Top
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Skip
+        type: integer
+      last_modified_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od tohoto času (ISO 8601, např. 2026-01-31T00:00:00).
+        title: Last Modified From
+      issue_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení od (YYYY-MM-DD).
+        title: Issue Date From
+      issue_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení do (YYYY-MM-DD).
+        title: Issue Date To
+      payment_status:
+        anyOf:
+        - enum:
+          - not_paid
+          - fully_paid
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav úhrady.
+        title: Payment Status
+      numbering_sequence:
+        anyOf:
+        - maxLength: 5
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číselná řada (max. 5 znaků).
+        title: Numbering Sequence
+      document_number_from:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu od.
+        title: Document Number From
+      document_number_to:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu do.
+        title: Document Number To
+      delivery_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum dodání od (YYYY-MM-DD).
+        title: Delivery Date From
+      delivery_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum dodání do (YYYY-MM-DD).
+        title: Delivery Date To
+      due_date_status:
+        anyOf:
+        - enum:
+          - in_due
+          - over_due
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav splatnosti.
+        title: Due Date Status
+      order_number:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo objednávky.
+        title: Order Number
+      extended_fields:
+        anyOf:
+        - items:
+            enum:
+            - Items
+            - VatBreakdowns
+            - Payments
+            - LinkedDocuments
+            type: string
+          maxItems: 4
+          type: array
+        - type: 'null'
+        default: null
+        description: Rozšířená pole (Items, VatBreakdowns, Payments, LinkedDocuments).
+        title: Extended Fields
+    title: InvoiceList
+    type: object
+- name: get_invoice
+  description: Detail faktury podle Id včetně položek a cen.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_id:
+        description: Id faktury.
+        maximum: 9007199254740991
+        minimum: 1
+        title: Invoice Id
+        type: integer
+    required:
+    - invoice_id
+    title: InvoiceID
+    type: object
+- name: list_proforma_invoices
+  description: Seznam zálohových (proforma) faktur s filtrem data, stavu úhrady a
+    čísla dokladu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      top:
+        default: 50
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Top
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Skip
+        type: integer
+      last_modified_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od tohoto času (ISO 8601, např. 2026-01-31T00:00:00).
+        title: Last Modified From
+      issue_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení od (YYYY-MM-DD).
+        title: Issue Date From
+      issue_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení do (YYYY-MM-DD).
+        title: Issue Date To
+      payment_status:
+        anyOf:
+        - enum:
+          - not_paid
+          - fully_paid
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav úhrady.
+        title: Payment Status
+      numbering_sequence:
+        anyOf:
+        - maxLength: 5
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číselná řada (max. 5 znaků).
+        title: Numbering Sequence
+      document_number_from:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu od.
+        title: Document Number From
+      document_number_to:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu do.
+        title: Document Number To
+      due_date_status:
+        anyOf:
+        - enum:
+          - in_due
+          - over_due
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav splatnosti.
+        title: Due Date Status
+      order_number:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo objednávky.
+        title: Order Number
+      extended_fields:
+        anyOf:
+        - items:
+            enum:
+            - Items
+            - VatBreakdowns
+            - Payments
+            - LinkedDocuments
+            type: string
+          maxItems: 4
+          type: array
+        - type: 'null'
+        default: null
+        description: Rozšířená pole (Items, VatBreakdowns, Payments, LinkedDocuments).
+        title: Extended Fields
+    title: ProformaInvoiceList
+    type: object
+- name: list_expenses
+  description: Seznam výdajových dokladů (přijaté faktury, účtenky) s filtrem data
+    a stavu úhrady.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      top:
+        default: 50
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Top
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Skip
+        type: integer
+      last_modified_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od tohoto času (ISO 8601, např. 2026-01-31T00:00:00).
+        title: Last Modified From
+      issue_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení od (YYYY-MM-DD).
+        title: Issue Date From
+      issue_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum vystavení do (YYYY-MM-DD).
+        title: Issue Date To
+      payment_status:
+        anyOf:
+        - enum:
+          - not_paid
+          - fully_paid
+          type: string
+        - type: 'null'
+        default: null
+        description: Stav úhrady.
+        title: Payment Status
+      numbering_sequence:
+        anyOf:
+        - maxLength: 5
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číselná řada (max. 5 znaků).
+        title: Numbering Sequence
+      document_number_from:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu od.
+        title: Document Number From
+      document_number_to:
+        anyOf:
+        - maxLength: 20
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Číslo dokladu do.
+        title: Document Number To
+      due_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum splatnosti od (YYYY-MM-DD).
+        title: Due Date From
+      due_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum splatnosti do (YYYY-MM-DD).
+        title: Due Date To
+    title: ExpenseList
+    type: object
+- name: get_expense
+  description: Detail výdajového dokladu podle Guid.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      expense_id:
+        description: Guid výdajového dokladu.
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        title: Expense Id
+        type: string
+    required:
+    - expense_id
+    title: ExpenseID
+    type: object
+- name: list_catalog_items
+  description: Seznam položek katalogu (ceník, skladové množství) s filtrem kódu a
+    názvu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      top:
+        default: 50
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Top
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Skip
+        type: integer
+      last_modified_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od tohoto času (ISO 8601, např. 2026-01-31T00:00:00).
+        title: Last Modified From
+      item_code:
+        anyOf:
+        - maxLength: 25
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Kód položky katalogu.
+        title: Item Code
+      name:
+        anyOf:
+        - maxLength: 255
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Fulltext v názvu položky.
+        title: Name
+      only_marked_for_eshop:
+        default: false
+        description: Jen položky označené pro e-shop.
+        title: Only Marked For Eshop
+        type: boolean
+    title: CatalogItemList
+    type: object
+- name: list_payments
+  description: Seznam plateb (finančních transakcí) s filtrem data, účtu a externího
+    id.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      top:
+        default: 50
+        description: Počet záznamů (max. 100).
+        maximum: 100
+        minimum: 1
+        title: Top
+        type: integer
+      skip:
+        default: 0
+        description: Počet přeskočených záznamů.
+        maximum: 100000
+        minimum: 0
+        title: Skip
+        type: integer
+      last_modified_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Jen záznamy změněné od tohoto času (ISO 8601, např. 2026-01-31T00:00:00).
+        title: Last Modified From
+      payment_date_from:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum platby od (YYYY-MM-DD).
+        title: Payment Date From
+      payment_date_to:
+        anyOf:
+        - pattern: ^\d{4}-\d{2}-\d{2}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Datum platby do (YYYY-MM-DD).
+        title: Payment Date To
+      account_id:
+        anyOf:
+        - maximum: 9007199254740991
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        description: Id finančního účtu.
+        title: Account Id
+      external_id:
+        anyOf:
+        - maxLength: 64
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Externí id platby.
+        title: External Id
+    title: PaymentList
+    type: object
+- name: list_bank_accounts
+  description: Seznam finančních účtů (banka, pokladna, platební brána).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Empty
+    type: object

@@ -1,0 +1,375 @@
+schema_version: 1
+slug: mews
+name: Mews
+version: 1.0.0
+category: hospitality
+summary: Čtecí přístup k rezervacím, hostům, službám, zdrojům a podnikům Mews Connector
+  API.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: client_token
+  required: true
+  secret: true
+- key: access_token
+  required: true
+  secret: true
+- key: environment
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  hosts:
+  - api.mews.com
+  - api.mews-demo.com
+  port: 443
+  path_prefix: /api/connector/v1
+  methods:
+  - POST
+tools:
+- name: list_reservations
+  description: Stránka rezervací v ohraničeném časovém okně (max. 3 měsíce) s filtrem
+    stavu a služby.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 25
+        description: Počet záznamů (Limitation.Count)
+        maximum: 100
+        minimum: 1
+        title: Count
+        type: integer
+      cursor:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Cursor z předchozí stránky (Limitation.Cursor)
+        title: Cursor
+      start:
+        description: Začátek intervalu UTC (YYYY-MM-DD nebo ...THH:MM:SSZ)
+        maxLength: 20
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?$
+        title: Start
+        type: string
+      end:
+        description: Konec intervalu UTC, nejvýše 3 měsíce po začátku
+        maxLength: 20
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?$
+        title: End
+        type: string
+      window:
+        default: scheduled_start
+        description: Který čas rezervace interval filtruje
+        enum:
+        - scheduled_start
+        - scheduled_end
+        - colliding
+        - created
+        - updated
+        title: Window
+        type: string
+      states:
+        anyOf:
+        - items:
+            enum:
+            - Inquired
+            - Confirmed
+            - Started
+            - Processed
+            - Canceled
+            - Optional
+            - Requested
+            type: string
+          maxItems: 7
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Stavy rezervací
+        title: States
+      service_ids:
+        anyOf:
+        - items:
+            maxLength: 36
+            minLength: 36
+            pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: ID služeb (Services)
+        title: Service Ids
+    required:
+    - start
+    - end
+    title: ReservationList
+    type: object
+- name: list_customers
+  description: Stránka hostů podle intervalu vytvoření/změny nebo podle ID (adresy
+    volitelně).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 25
+        description: Počet záznamů (Limitation.Count)
+        maximum: 100
+        minimum: 1
+        title: Count
+        type: integer
+      cursor:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Cursor z předchozí stránky (Limitation.Cursor)
+        title: Cursor
+      window:
+        default: updated
+        description: Který čas hosta interval filtruje
+        enum:
+        - created
+        - updated
+        title: Window
+        type: string
+      start:
+        anyOf:
+        - maxLength: 20
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?$
+          type: string
+        - type: 'null'
+        default: null
+        description: Začátek intervalu UTC
+        title: Start
+      end:
+        anyOf:
+        - maxLength: 20
+          minLength: 10
+          pattern: ^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?$
+          type: string
+        - type: 'null'
+        default: null
+        description: Konec intervalu UTC (max. 3 měsíce)
+        title: End
+      customer_ids:
+        anyOf:
+        - items:
+            maxLength: 36
+            minLength: 36
+            pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: ID hostů (Customers)
+        title: Customer Ids
+      include_addresses:
+        default: false
+        description: Přidat adresy hostů
+        title: Include Addresses
+        type: boolean
+    title: CustomerList
+    type: object
+- name: list_services
+  description: Stránka služeb podniku (ubytování, doplňkové služby).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 25
+        description: Počet záznamů (Limitation.Count)
+        maximum: 100
+        minimum: 1
+        title: Count
+        type: integer
+      cursor:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Cursor z předchozí stránky (Limitation.Cursor)
+        title: Cursor
+      service_ids:
+        anyOf:
+        - items:
+            maxLength: 36
+            minLength: 36
+            pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: ID služeb
+        title: Service Ids
+      service_type:
+        anyOf:
+        - enum:
+          - Bookable
+          - Additional
+          type: string
+        - type: 'null'
+        default: null
+        description: Typ služby
+        title: Service Type
+    title: ServiceList
+    type: object
+- name: list_resources
+  description: Stránka zdrojů (pokojů, míst) podniku.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 25
+        description: Počet záznamů (Limitation.Count)
+        maximum: 100
+        minimum: 1
+        title: Count
+        type: integer
+      cursor:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Cursor z předchozí stránky (Limitation.Cursor)
+        title: Cursor
+      resource_ids:
+        anyOf:
+        - items:
+            maxLength: 36
+            minLength: 36
+            pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: ID zdrojů (pokojů)
+        title: Resource Ids
+      names:
+        anyOf:
+        - items:
+            maxLength: 64
+            minLength: 1
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Názvy zdrojů (čísla pokojů)
+        title: Names
+      include_inactive:
+        default: false
+        description: Zahrnout neaktivní zdroje
+        title: Include Inactive
+        type: boolean
+    title: ResourceList
+    type: object
+- name: list_enterprises
+  description: Stránka podniků dostupných přístupovému tokenu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      count:
+        default: 25
+        description: Počet záznamů (Limitation.Count)
+        maximum: 100
+        minimum: 1
+        title: Count
+        type: integer
+      cursor:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Cursor z předchozí stránky (Limitation.Cursor)
+        title: Cursor
+      enterprise_ids:
+        anyOf:
+        - items:
+            maxLength: 36
+            minLength: 36
+            pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: ID podniků
+        title: Enterprise Ids
+    title: EnterpriseList
+    type: object
+- name: get_configuration
+  description: Konfigurace podniku svázaného s tokenem.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      enterprise_id:
+        anyOf:
+        - maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          type: string
+        - type: 'null'
+        default: null
+        description: ID podniku (jen pro portfolio tokeny)
+        title: Enterprise Id
+    title: Configuration
+    type: object

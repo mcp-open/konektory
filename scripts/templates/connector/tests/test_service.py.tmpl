@@ -1,0 +1,118 @@
+from __future__ import annotations
+
+import asyncio
+from typing import Any
+
+import pytest
+from openmcp_connector_runtime import ConnectorError, ErrorCode, InvocationContext
+from pydantic import SecretStr, ValidationError
+
+from __MODULE__ import schemas as s
+from __MODULE__.app import build_definition
+from __MODULE__.service import (
+    SLUG,
+    VERSION,
+    __CLASS__,
+)
+
+PII_KEY = "synthetic-pii-key-0123456789abcdef01234567"
+TOOL = "__TOOL__"
+
+
+def context(**changes: Any) -> InvocationContext:
+    values = {"pii_key": PII_KEY}
+    values.update(changes.pop("credentials", {}))
+    return InvocationContext(
+        request_id="req-1",
+        subject="subject-1",
+        workspace_id="workspace-1",
+        installation_id="install-1",
+        secret_ref=f"{SLUG}/workspace-1/install-1",
+        secret_version=1,
+        provider_credential={key: SecretStr(value) for key, value in values.items()},
+    ).model_copy(update=changes)
+
+
+def test_definition_is_read_only_and_marked_unfinished() -> None:
+    definition = build_definition()
+    assert definition.slug == SLUG
+    assert definition.version == VERSION
+    assert definition.requires_secret is True
+    assert set(definition.tools) == {TOOL}
+    assert all(tool.read_only for tool in definition.tools.values())
+    assert definition.test_connection is not None
+
+
+def test_sample_tool_raises_safe_sdk_error_instead_of_fake_data() -> None:
+    spec = build_definition().tools[TOOL]
+    with pytest.raises(ConnectorError) as caught:
+        asyncio.run(spec.handler(spec.input_model.model_validate({}), context()))
+    assert caught.value.code is ErrorCode.INTERNAL
+    assert caught.value.retryable is False
+    assert PII_KEY not in str(caught.value)
+
+
+def test_safe_test_does_not_pretend_to_be_connected() -> None:
+    with pytest.raises(ConnectorError) as caught:
+        asyncio.run(__CLASS__().test_connection(context()))
+    assert caught.value.code is ErrorCode.INTERNAL
+
+
+@pytest.mark.parametrize(
+    "changes,code",
+    [
+        ({"secret_ref": f"{SLUG}/other/install-1"}, ErrorCode.FORBIDDEN),
+        ({"secret_ref": "other/workspace-1/install-1"}, ErrorCode.FORBIDDEN),
+        ({"secret_version": None}, ErrorCode.CREDENTIAL_INVALID),
+        ({"provider_credential": None}, ErrorCode.CREDENTIAL_INVALID),
+        ({"provider_credential": {}}, ErrorCode.CREDENTIAL_INVALID),
+        ({"credentials": {"pii_key": "short"}}, ErrorCode.CREDENTIAL_INVALID),
+    ],
+)
+def test_bad_credentials_are_rejected_before_any_work(
+    changes: dict[str, Any], code: ErrorCode
+) -> None:
+    service = __CLASS__()
+    spec = build_definition(service).tools[TOOL]
+    with pytest.raises(ConnectorError) as caught:
+        asyncio.run(spec.handler(spec.input_model.model_validate({}), context(**changes)))
+    assert caught.value.code is code
+    with pytest.raises(ConnectorError) as caught:
+        asyncio.run(service.test_connection(context(**changes)))
+    assert caught.value.code is code
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"url": "https://outside.invalid"},
+        {"limit": 1},
+        {"name": "evil\r\nAuthorization: other"},
+        [],
+        "text",
+        None,
+    ],
+)
+def test_unknown_or_unsafe_arguments_are_rejected(arguments: Any) -> None:
+    spec = build_definition().tools[TOOL]
+    with pytest.raises(ValidationError):
+        spec.input_model.model_validate(arguments)
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"limit": 0},
+        {"limit": 101},
+        {"offset": -1},
+        {"offset": 10_001},
+        {"limit": "5"},
+        {"limit": True},
+        {"limit": 5, "resource": "orders"},
+    ],
+)
+def test_page_bounds_fail_instead_of_clamping(arguments: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        s.Page.model_validate(arguments)
+    assert s.Page.model_validate({}).limit == 20
+    assert s.Page.model_validate({"limit": 100, "offset": 10_000}).offset == 10_000

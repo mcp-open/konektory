@@ -1,0 +1,346 @@
+schema_version: 1
+slug: mapy
+name: Mapy.com
+version: 1.0.0
+category: maps
+summary: Čtecí přístup ke geokódování, našeptávači, trasám a výškám Mapy.com.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.mapy.com
+  port: 443
+  path_prefix: /v1
+  methods:
+  - GET
+tools:
+- name: geocode
+  description: 'Geokódování: souřadnice a popis místa pro adresu, obec nebo název.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      query:
+        maxLength: 150
+        minLength: 1
+        title: Query
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - de
+        - el
+        - en
+        - es
+        - fr
+        - it
+        - nl
+        - pl
+        - pt
+        - ru
+        - sk
+        - tr
+        - uk
+        title: Lang
+        type: string
+      limit:
+        default: 5
+        maximum: 15
+        minimum: 1
+        title: Limit
+        type: integer
+      entity_type:
+        anyOf:
+        - enum:
+          - regional
+          - regional.country
+          - regional.region
+          - regional.municipality
+          - regional.municipality_part
+          - regional.street
+          - regional.address
+          - poi
+          - coordinate
+          type: string
+        - type: 'null'
+        default: null
+        title: Entity Type
+      locality:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        title: Locality
+    required:
+    - query
+    title: Query
+    type: object
+- name: reverse_geocode
+  description: 'Zpětné geokódování: adresa a regiony pro souřadnice.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      lon:
+        maximum: 180
+        minimum: -180
+        title: Lon
+        type: number
+      lat:
+        maximum: 90
+        minimum: -90
+        title: Lat
+        type: number
+      lang:
+        default: cs
+        enum:
+        - cs
+        - de
+        - el
+        - en
+        - es
+        - fr
+        - it
+        - nl
+        - pl
+        - pt
+        - ru
+        - sk
+        - tr
+        - uk
+        title: Lang
+        type: string
+    required:
+    - lon
+    - lat
+    title: ReverseGeocode
+    type: object
+- name: suggest
+  description: Našeptávač míst pro rozepsaný dotaz (nejvýše 15 návrhů).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      query:
+        maxLength: 150
+        minLength: 1
+        title: Query
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - de
+        - el
+        - en
+        - es
+        - fr
+        - it
+        - nl
+        - pl
+        - pt
+        - ru
+        - sk
+        - tr
+        - uk
+        title: Lang
+        type: string
+      limit:
+        default: 5
+        maximum: 15
+        minimum: 1
+        title: Limit
+        type: integer
+      entity_type:
+        anyOf:
+        - enum:
+          - regional
+          - regional.country
+          - regional.region
+          - regional.municipality
+          - regional.municipality_part
+          - regional.street
+          - regional.address
+          - poi
+          - coordinate
+          type: string
+        - type: 'null'
+        default: null
+        title: Entity Type
+      locality:
+        anyOf:
+        - maxLength: 128
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        title: Locality
+    required:
+    - query
+    title: Query
+    type: object
+- name: route
+  description: Plánování trasy mezi dvěma body (auto, pěšky, kolo) s délkou, časem
+    a polyline.
+  read_only: true
+  input_schema:
+    $defs:
+      Position:
+        additionalProperties: false
+        properties:
+          lon:
+            maximum: 180
+            minimum: -180
+            title: Lon
+            type: number
+          lat:
+            maximum: 90
+            minimum: -90
+            title: Lat
+            type: number
+        required:
+        - lon
+        - lat
+        title: Position
+        type: object
+    additionalProperties: false
+    properties:
+      start:
+        $ref: '#/$defs/Position'
+      end:
+        $ref: '#/$defs/Position'
+      route_type:
+        default: car_fast
+        enum:
+        - car_fast
+        - car_fast_traffic
+        - car_short
+        - foot_fast
+        - foot_hiking
+        - bike_road
+        - bike_mountain
+        title: Route Type
+        type: string
+      lang:
+        default: cs
+        enum:
+        - cs
+        - de
+        - el
+        - en
+        - es
+        - fr
+        - it
+        - nl
+        - pl
+        - pt
+        - ru
+        - sk
+        - tr
+        - uk
+        title: Lang
+        type: string
+      avoid_toll:
+        default: false
+        title: Avoid Toll
+        type: boolean
+      avoid_highways:
+        default: false
+        title: Avoid Highways
+        type: boolean
+      waypoints:
+        items:
+          $ref: '#/$defs/Position'
+        maxItems: 15
+        title: Waypoints
+        type: array
+    required:
+    - start
+    - end
+    title: Route
+    type: object
+- name: elevation
+  description: Nadmořská výška pro zadané souřadnice (nejvýše 64 bodů).
+  read_only: true
+  input_schema:
+    $defs:
+      Position:
+        additionalProperties: false
+        properties:
+          lon:
+            maximum: 180
+            minimum: -180
+            title: Lon
+            type: number
+          lat:
+            maximum: 90
+            minimum: -90
+            title: Lat
+            type: number
+        required:
+        - lon
+        - lat
+        title: Position
+        type: object
+    additionalProperties: false
+    properties:
+      positions:
+        items:
+          $ref: '#/$defs/Position'
+        maxItems: 64
+        minItems: 1
+        title: Positions
+        type: array
+      lang:
+        default: cs
+        enum:
+        - cs
+        - de
+        - el
+        - en
+        - es
+        - fr
+        - it
+        - nl
+        - pl
+        - pt
+        - ru
+        - sk
+        - tr
+        - uk
+        title: Lang
+        type: string
+    required:
+    - positions
+    title: Elevation
+    type: object

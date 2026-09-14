@@ -1,0 +1,291 @@
+schema_version: 1
+slug: luigisbox
+name: Luigi's Box
+version: 1.0.0
+category: search
+summary: Čtecí přístup k vyhledávání, našeptávači, doporučením a exportu obsahu Luigi's
+  Box.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: tracker_id
+  required: true
+  secret: true
+- key: public_key
+  required: true
+  secret: true
+- key: private_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: live.luigisbox.com
+  port: 443
+  methods:
+  - GET
+  - POST
+tools:
+- name: search
+  description: Fulltextové vyhledávání v katalogu s filtry, řazením a facetami.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      q:
+        anyOf:
+        - maxLength: 256
+          minLength: 1
+          type: string
+        - type: 'null'
+        default: null
+        description: Hledaný dotaz
+        title: Q
+      size:
+        default: 10
+        description: Počet výsledků (max. 200)
+        maximum: 200
+        minimum: 1
+        title: Size
+        type: integer
+      page:
+        default: 1
+        description: Číslo stránky výsledků
+        maximum: 1000
+        minimum: 1
+        title: Page
+        type: integer
+      filters:
+        anyOf:
+        - items:
+            pattern: ^[A-Za-z0-9_.-]{1,64}:[^\x00-\x1f\x7f]{1,128}$
+            type: string
+          maxItems: 20
+          type: array
+        - type: 'null'
+        default: null
+        description: Filtry `pole:hodnota` (parametr f[])
+        title: Filters
+      must_filters:
+        anyOf:
+        - items:
+            pattern: ^[A-Za-z0-9_.-]{1,64}:[^\x00-\x1f\x7f]{1,128}$
+            type: string
+          maxItems: 20
+          type: array
+        - type: 'null'
+        default: null
+        description: Striktní AND filtry (parametr f_must[])
+        title: Must Filters
+      sort:
+        anyOf:
+        - pattern: ^[A-Za-z0-9_.-]{1,64}:(asc|desc)$
+          type: string
+        - type: 'null'
+        default: null
+        description: Řazení `pole:asc|desc`
+        title: Sort
+      facets:
+        anyOf:
+        - maxLength: 3249
+          pattern: ^[A-Za-z0-9_.-]{1,64}(,[A-Za-z0-9_.-]{1,64})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Facety oddělené čárkou
+        title: Facets
+      quicksearch_types:
+        anyOf:
+        - maxLength: 3249
+          pattern: ^[A-Za-z0-9_.-]{1,64}(,[A-Za-z0-9_.-]{1,64})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Sekundární typy obsahu oddělené čárkou
+        title: Quicksearch Types
+      hit_fields:
+        anyOf:
+        - maxLength: 3249
+          pattern: ^[A-Za-z0-9_.-]{1,64}(,[A-Za-z0-9_.-]{1,64})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vrácená pole oddělená čárkou
+        title: Hit Fields
+      use_fixits:
+        default: true
+        description: Použít opravy překlepů a přesměrování
+        title: Use Fixits
+        type: boolean
+    title: Search
+    type: object
+- name: autocomplete
+  description: 'Našeptávač: návrhy dotazů a položek pro částečný dotaz.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      q:
+        description: Částečný dotaz uživatele
+        maxLength: 256
+        minLength: 1
+        title: Q
+        type: string
+      type:
+        default: item:6
+        description: Typy a počty výsledků `typ:počet`
+        pattern: ^[a-z][a-z0-9_]{0,31}:(?:[1-9]|[1-4][0-9]|50)(,[a-z][a-z0-9_]{0,31}:(?:[1-9]|[1-4][0-9]|50)){0,4}$
+        title: Type
+        type: string
+      hit_fields:
+        anyOf:
+        - maxLength: 3249
+          pattern: ^[A-Za-z0-9_.-]{1,64}(,[A-Za-z0-9_.-]{1,64})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vrácená pole oddělená čárkou
+        title: Hit Fields
+    required:
+    - q
+    title: Autocomplete
+    type: object
+- name: top_items
+  description: Nejoblíbenější položky podle typu (např. pro prázdné hledání).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      type:
+        default: item:10
+        description: Typy a počty výsledků `typ:počet`
+        pattern: ^[a-z][a-z0-9_]{0,31}:(?:[1-9]|[1-4][0-9]|50)(,[a-z][a-z0-9_]{0,31}:(?:[1-9]|[1-4][0-9]|50)){0,4}$
+        title: Type
+        type: string
+      hit_fields:
+        anyOf:
+        - maxLength: 3249
+          pattern: ^[A-Za-z0-9_.-]{1,64}(,[A-Za-z0-9_.-]{1,64})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Vrácená pole oddělená čárkou
+        title: Hit Fields
+    title: TopItems
+    type: object
+- name: trending_queries
+  description: Aktuálně populární hledané fráze.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: TrendingQueries
+    type: object
+- name: recommend
+  description: Doporučení produktů daného typu modelu (např. bestsellers).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      recommendation_type:
+        description: Typ doporučení (např. bestsellers)
+        pattern: ^[a-z0-9_]{1,64}$
+        title: Recommendation Type
+        type: string
+      item_ids:
+        anyOf:
+        - items:
+            pattern: ^[^\x00-\x1f\x7f\s]{1,256}$
+            type: string
+          maxItems: 10
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Identity položek (max. 10)
+        title: Item Ids
+      size:
+        default: 10
+        description: Počet doporučení (max. 50)
+        maximum: 50
+        minimum: 1
+        title: Size
+        type: integer
+      hit_fields:
+        anyOf:
+        - items:
+            pattern: ^[A-Za-z0-9_.-]{1,64}$
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Vrácená pole
+        title: Hit Fields
+      recommender_client_identifier:
+        anyOf:
+        - pattern: ^[A-Za-z0-9_.-]{1,64}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Identifikátor umístění widgetu
+        title: Recommender Client Identifier
+    required:
+    - recommendation_type
+    title: Recommend
+    type: object
+- name: content_export
+  description: Export indexovaného obsahu (první stránka, podepsaný privátní API přístup).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      size:
+        default: 100
+        description: Počet záznamů (max. 500)
+        maximum: 500
+        minimum: 1
+        title: Size
+        type: integer
+      hit_fields:
+        anyOf:
+        - maxLength: 3249
+          pattern: ^[A-Za-z0-9_.-]{1,64}(,[A-Za-z0-9_.-]{1,64})*$
+          type: string
+        - type: 'null'
+        default: null
+        description: Exportovaná pole oddělená čárkou
+        title: Hit Fields
+      requested_types:
+        anyOf:
+        - pattern: ^[a-z][a-z0-9_]{0,31}(,[a-z][a-z0-9_]{0,31}){0,9}$
+          type: string
+        - type: 'null'
+        default: null
+        description: Typy objektů oddělené čárkou
+        title: Requested Types
+    title: ContentExport
+    type: object

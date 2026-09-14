@@ -1,0 +1,22 @@
+{
+  "description": "Go signer to Python verifier contract fixture; signing_key is test-only and is never a wire claim.",
+  "signing_key": "fixture-signing-key-32-bytes-long!!",
+  "verification_time": 1788000010,
+  "body_json": "{\"request_id\":\"fixture-request-1\",\"subject\":\"fixture-user-1\",\"workspace_id\":\"fixture-workspace-1\",\"installation_id\":\"fixture-installation-1\",\"connector\":\"ares\",\"manifest_version\":\"1.0.0\",\"tool\":\"ares_subjekt_lookup\",\"arguments\":{\"ico\":\"27074358\"}}",
+  "claims": {
+    "iss": "openmcp-core",
+    "aud": "connector:ares",
+    "iat": 1788000000,
+    "exp": 1788000045,
+    "jti": "Zml4dHVyZS1qdGktMTIzNDU2",
+    "request_id": "fixture-request-1",
+    "subject": "fixture-user-1",
+    "workspace_id": "fixture-workspace-1",
+    "installation_id": "fixture-installation-1",
+    "connector": "ares",
+    "manifest_version": "1.0.0",
+    "tool": "ares_subjekt_lookup",
+    "body_sha256": "EX5Ey6bX_MekSCDkFds2CnfXpidtWUmTrmJ3f_9AdCc"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6Ik9NQ1AtSU5WIiwidiI6MX0.eyJpc3MiOiJvcGVubWNwLWNvcmUiLCJhdWQiOiJjb25uZWN0b3I6YXJlcyIsImlhdCI6MTc4ODAwMDAwMCwiZXhwIjoxNzg4MDAwMDQ1LCJqdGkiOiJabWw0ZEhWeVpTMXFkR2t0TVRJek5EVTIiLCJyZXF1ZXN0X2lkIjoiZml4dHVyZS1yZXF1ZXN0LTEiLCJzdWJqZWN0IjoiZml4dHVyZS11c2VyLTEiLCJ3b3Jrc3BhY2VfaWQiOiJmaXh0dXJlLXdvcmtzcGFjZS0xIiwiaW5zdGFsbGF0aW9uX2lkIjoiZml4dHVyZS1pbnN0YWxsYXRpb24tMSIsImNvbm5lY3RvciI6ImFyZXMiLCJtYW5pZmVzdF92ZXJzaW9uIjoiMS4wLjAiLCJ0b29sIjoiYXJlc19zdWJqZWt0X2xvb2t1cCIsImJvZHlfc2hhMjU2IjoiRVg1RXk2YlhfTWVrU0NEa0ZkczJDbmZYcGlkdFdVbVRybUozZl85QWRDYyJ9.KE3AOkNp39_fRqlq8pNOgildJ3ssAVo3iSMc2SGIis0"
+}

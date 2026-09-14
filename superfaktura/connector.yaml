@@ -1,0 +1,157 @@
+schema_version: 1
+slug: superfaktura
+name: SuperFaktúra
+version: 1.0.0
+category: accounting
+summary: Čtecí přístup k fakturám, klientům a nákladům SuperFaktúry.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: region
+  required: true
+  secret: true
+- key: email
+  required: true
+  secret: true
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  hosts:
+  - moja.superfaktura.sk
+  - moje.superfaktura.cz
+  - sandbox.superfaktura.sk
+  - sandbox.superfaktura.cz
+  port: 443
+  methods:
+  - GET
+tools:
+- name: list_invoices
+  description: Stránka faktúr a ich stavov.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 50
+        maximum: 100
+        minimum: 1
+        title: Per Page
+        type: integer
+    title: Page
+    type: object
+- name: get_invoice
+  description: Detail faktúry podľa ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      invoice_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Invoice Id
+        type: integer
+    required:
+    - invoice_id
+    title: InvoiceID
+    type: object
+- name: list_clients
+  description: Stránka klientov v adresári.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 50
+        maximum: 100
+        minimum: 1
+        title: Per Page
+        type: integer
+    title: Page
+    type: object
+- name: get_client
+  description: Detail klienta podľa ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      client_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Client Id
+        type: integer
+    required:
+    - client_id
+    title: ClientID
+    type: object
+- name: list_expenses
+  description: Stránka nákladov a ich stavov.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      per_page:
+        default: 50
+        maximum: 100
+        minimum: 1
+        title: Per Page
+        type: integer
+    title: Page
+    type: object
+- name: get_expense
+  description: Detail nákladu podľa ID.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      expense_id:
+        maximum: 9007199254740991
+        minimum: 1
+        title: Expense Id
+        type: integer
+    required:
+    - expense_id
+    title: ExpenseID
+    type: object

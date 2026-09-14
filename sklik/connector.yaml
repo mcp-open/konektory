@@ -1,0 +1,350 @@
+schema_version: 1
+slug: sklik
+name: Sklik
+version: 1.0.0
+category: advertising
+summary: Čtecí přístup ke kampaním, sestavám, klíčovým slovům, inzerátům a statistikám
+  Sklik.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_token
+  required: true
+  secret: true
+- key: user_id
+  required: false
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes: [strict, balanced, plain]
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: api.sklik.cz
+  port: 443
+  path_prefix: /drak/json/v5
+  methods:
+  - POST
+tools:
+- name: get_client
+  description: Informace o účtu Sklik včetně spravovaných (cizích) účtů.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_campaigns
+  description: Stránka kampaní účtu (ID, název, stav, typ).
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (displayOptions.limit)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Posun záznamů (displayOptions.offset)
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      include_deleted:
+        default: false
+        description: Zahrnout i smazané entity (jinak isDeleted=false)
+        title: Include Deleted
+        type: boolean
+      campaign_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Jen tyto kampaně (ids)
+        title: Campaign Ids
+    title: CampaignList
+    type: object
+- name: list_groups
+  description: Stránka sestav, volitelně jen z vybraných kampaní.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (displayOptions.limit)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Posun záznamů (displayOptions.offset)
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      include_deleted:
+        default: false
+        description: Zahrnout i smazané entity (jinak isDeleted=false)
+        title: Include Deleted
+        type: boolean
+      campaign_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Sestavy z těchto kampaní (campaign.ids)
+        title: Campaign Ids
+      group_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Jen tyto sestavy (ids)
+        title: Group Ids
+    title: GroupList
+    type: object
+- name: list_keywords
+  description: Stránka klíčových slov, volitelně jen z vybraných sestav nebo kampaní.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (displayOptions.limit)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Posun záznamů (displayOptions.offset)
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      include_deleted:
+        default: false
+        description: Zahrnout i smazané entity (jinak isDeleted=false)
+        title: Include Deleted
+        type: boolean
+      campaign_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Klíčová slova z těchto kampaní (campaign.ids)
+        title: Campaign Ids
+      group_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Klíčová slova z těchto sestav (group.ids)
+        title: Group Ids
+      keyword_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Jen tato klíčová slova (ids)
+        title: Keyword Ids
+    title: KeywordList
+    type: object
+- name: list_ads
+  description: Stránka inzerátů, volitelně jen z vybraných sestav nebo kampaní.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 100
+        description: Počet záznamů (displayOptions.limit)
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Posun záznamů (displayOptions.offset)
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+      include_deleted:
+        default: false
+        description: Zahrnout i smazané entity (jinak isDeleted=false)
+        title: Include Deleted
+        type: boolean
+      campaign_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Inzeráty z těchto kampaní (campaign.ids)
+        title: Campaign Ids
+      group_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Inzeráty z těchto sestav (group.ids)
+        title: Group Ids
+      ad_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Jen tyto inzeráty (ids)
+        title: Ad Ids
+    title: AdList
+    type: object
+- name: campaign_stats
+  description: Statistiky kampaní (imprese, kliky, CTR, cena, konverze) za ohraničené
+    období.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      date_from:
+        description: Začátek období (YYYY-MM-DD)
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date From
+        type: string
+      date_to:
+        description: Konec období (YYYY-MM-DD), nejvýše rok po začátku
+        maxLength: 10
+        minLength: 10
+        pattern: ^\d{4}-\d{2}-\d{2}$
+        title: Date To
+        type: string
+      campaign_ids:
+        anyOf:
+        - items:
+            maximum: 9007199254740991
+            minimum: 1
+            type: integer
+          maxItems: 100
+          minItems: 1
+          type: array
+        - type: 'null'
+        default: null
+        description: Jen tyto kampaně (ids)
+        title: Campaign Ids
+      granularity:
+        default: total
+        description: Členění statistik (displayOptions.statGranularity)
+        enum:
+        - total
+        - daily
+        - weekly
+        - monthly
+        - quarterly
+        - yearly
+        title: Granularity
+        type: string
+      include_deleted:
+        default: false
+        description: Zahrnout i smazané kampaně
+        title: Include Deleted
+        type: boolean
+      limit:
+        default: 100
+        description: Počet kampaní v reportu
+        maximum: 500
+        minimum: 1
+        title: Limit
+        type: integer
+      offset:
+        default: 0
+        description: Posun kampaní v reportu
+        maximum: 100000
+        minimum: 0
+        title: Offset
+        type: integer
+    required:
+    - date_from
+    - date_to
+    title: CampaignStats
+    type: object
