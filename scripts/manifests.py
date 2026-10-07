@@ -34,6 +34,13 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "credentials": ["account_slug", "access_token", "pii_key"],
         "egress": {"host": "app.fakturoid.cz", "port": 443, "path_prefix": "/api/v3"},
     },
+    "dokladbot": {
+        "name": "DokladBot",
+        "category": "accounting",
+        "summary": "Čtecí přístup k dokladům, DPH, splatnostem a přehledům DokladBotu.",
+        "credentials": ["api_key", "pii_key"],
+        "egress": {"host": "dokladbot.cz", "port": 443, "path_prefix": "/api"},
+    },
     "freelo": {
         "name": "Freelo",
         "category": "project_management",

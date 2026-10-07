@@ -1,0 +1,179 @@
+schema_version: 1
+slug: dokladbot
+name: DokladBot
+version: 1.0.0
+category: accounting
+summary: Čtecí přístup k dokladům, DPH, splatnostem a přehledům DokladBotu.
+auth:
+  type: api_key
+  credential_delivery: core_signed_body_exact_version
+credentials:
+- key: api_key
+  required: true
+  secret: true
+- key: pii_key
+  required: true
+  secret: true
+capabilities:
+  default_read_only: true
+  supports_write: false
+  supports_test: true
+  pii_pseudonymization: configurable
+  privacy_modes:
+  - strict
+  - balanced
+  - plain
+  default_privacy_mode: strict
+runtime:
+  transport: internal_http
+  invocation_path: /internal/v1/invoke
+  test_connection_path: /internal/v1/test-connection
+  health_live_path: /health/live
+  health_ready_path: /health/ready
+  port_env: OPENMCP_HTTP_ADDR
+  internal_auth_env: OPENMCP_INTERNAL_TOKEN
+  internal_auth_file_env: OPENMCP_INTERNAL_TOKEN_FILE
+  internal_auth_source_policy: exactly_one
+  internal_auth: hmac_sha256_compact_v1
+  internal_auth_max_ttl_seconds: 60
+  internal_auth_replay_store: valkey_required_in_production
+egress:
+  host: dokladbot.cz
+  port: 443
+  path_prefix: /api
+  methods:
+  - GET
+tools:
+- name: list_documents
+  description: Stránka přijatých i vydaných dokladů a jejich stavu schválení.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      page:
+        default: 1
+        maximum: 10000
+        minimum: 1
+        title: Page
+        type: integer
+      limit:
+        default: 20
+        maximum: 50
+        minimum: 1
+        title: Limit
+        type: integer
+      status:
+        default: ALL
+        enum:
+        - PENDING
+        - APPROVED
+        - REJECTED
+        - ALL
+        title: Status
+        type: string
+    title: Documents
+    type: object
+- name: get_document
+  description: Detail dokladu včetně rozpisu DPH podle sazeb.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      document_id:
+        pattern: ^[A-Za-z0-9_-]{1,64}$
+        title: Document Id
+        type: string
+    required:
+    - document_id
+    title: DocumentID
+    type: object
+- name: get_vat_summary
+  description: 'Souhrn DPH za rok, čtvrtletí nebo měsíc: základy a daň.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      year:
+        maximum: 2100
+        minimum: 2020
+        title: Year
+        type: integer
+      quarter:
+        anyOf:
+        - maximum: 4
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Quarter
+      month:
+        anyOf:
+        - maximum: 12
+          minimum: 1
+          type: integer
+        - type: 'null'
+        default: null
+        title: Month
+    required:
+    - year
+    title: VatPeriod
+    type: object
+- name: list_due_invoices
+  description: Faktury po splatnosti nebo s blížící se splatností.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      status:
+        default: overdue
+        enum:
+        - overdue
+        - upcoming
+        title: Status
+        type: string
+      days:
+        default: 30
+        maximum: 365
+        minimum: 1
+        title: Days
+        type: integer
+    title: DueDates
+    type: object
+- name: get_overview
+  description: 'Přehled hospodaření: příjmy, výdaje a počty dokladů.'
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: get_credit_balance
+  description: Aktuální zůstatek kreditů účtu.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_companies
+  description: Firmy na účtu včetně IČO a DIČ.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties: {}
+    title: Input
+    type: object
+- name: list_suppliers
+  description: Dodavatelé podle útraty.
+  read_only: true
+  input_schema:
+    additionalProperties: false
+    properties:
+      limit:
+        default: 20
+        maximum: 100
+        minimum: 1
+        title: Limit
+        type: integer
+    title: Suppliers
+    type: object
