@@ -1,6 +1,6 @@
 # OpenMCP konektory
 
-34 read-only MCP konektorů pro české a slovenské služby — účetnictví, e-shopy,
+35 read-only MCP konektorů pro české a slovenské služby — účetnictví, e-shopy,
 platby, banky, CRM, marketing, logistika, registry — se společným Python SDK.
 Každý konektor umí běžet jako **stdio MCP server** pro Claude Desktop / Claude
 Code, jako **lokální CLI** bez MCP klienta, nebo jako hostovaný runtime v
@@ -61,6 +61,7 @@ Společné vlastnosti všech konektorů:
 | [Sklik](sklik/) | advertising | 6 | `api_token`, `user_id` |
 | [Reservio](reservio/) | booking | 8 | `access_token`, `business_id` |
 | [Luigi's Box](luigisbox/) | search | 6 | `tracker_id`, `public_key`, `private_key` |
+| [DokladBot](dokladbot/) | accounting | 8 | `api_key` |
 
 Podrobnosti, seznam nástrojů, získání credentials a známá omezení má každý
 konektor ve svém `README.md`; strojově čitelný manifest je `connector.yaml`.
@@ -148,7 +149,7 @@ Testy běží v Dockeru bez sítě (ruff, mypy strict, pytest s `-W error`,
 kontrola driftu manifestů, non-root smoke obrazů):
 
 ```sh
-make test                                 # SDK + všech 34 konektorů + registr + manifesty
+make test                                 # SDK + všech 35 konektorů + registr + manifesty
 make test-connector CONNECTOR=abraflexi   # SDK + jeden adaptér
 make build                                # obrazy všech konektorů + smoke
 ```
